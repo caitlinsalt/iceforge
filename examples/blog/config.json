@@ -12,7 +12,7 @@
     "./plugins/archiver.js",
     "./plugins/categoriser.js"
   ],
-  "require": {
+  "imports": {
     "luxon": "luxon",
     "_": "underscore"
   },

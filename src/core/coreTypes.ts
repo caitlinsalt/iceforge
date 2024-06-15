@@ -11,7 +11,8 @@ export interface IConfig {
     ignore: string[];
     locals: object | string;
     plugins: string[];
-    require: ModuleMap;
+    imports: ModuleMap;
+    require?: ModuleMap;
     templates: string;
     views: string;
     output: string;
