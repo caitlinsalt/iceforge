@@ -1,0 +1,47 @@
+
+extends layout
+
+block content
+  include author
+  each article in articles
+    article.post 
+      - var postDate = luxon.DateTime.fromJSDate(article.date)
+      header 
+        h3 
+          a(href=article.url rel='bookmark' title='Link to: ' + article.title)=article.title
+          if article.date !== undefined && article.date.getTime() !== 0
+            p.postmetadata #{postDate.toLocaleString(luxon.DateTime.DATE_FULL)}
+          else 
+            p.postmetadata Undated 
+          p.postmetadata By 
+            +author(article.metadata.author)
+          p.postmetadata Filed under 
+            if article.metadata.categories && article.metadata.categories.length > 0
+              - if (!Array.isArray(article.metadata.categories)) article.metadata.categories = [ article.metadata.categories ]
+              - article.metadata.categories = Array.from(new Set(article.metadata.categories))
+              - var lastCategory = article.metadata.categories.slice(-1)[0]
+              each cat in article.metadata.categories.slice(0, -1)
+                +linkify('category', cat, 'Posts categorised in ' + cat, '')
+                |, 
+              +linkify('category', lastCategory, 'Posts categorised in ' + lastCategory, '')
+            else
+              +linkify('category', 'Uncategorised', 'Posts without a category', '')
+            |.
+      section 
+        if article.hasMore
+          != article.intro 
+        else
+          != article.html
+
+block nav 
+  .row.cols-1.justify-content-center 
+    .col-auto.nav 
+      if nextPage 
+        a(href=nextPage.url) &laquo; Older posts
+      else
+        |&laquo; Older posts 
+      |&nbsp;&nbsp;***&nbsp;&nbsp;
+      if prevPage 
+        a(href=prevPage.url) &raquo; Newer posts
+      else
+        | Newer posts &raquo;
