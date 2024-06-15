@@ -8,9 +8,11 @@ Iceforge is inspired by and derived from [Wintersmith](https://wintersmith.io) b
 
 ## Installation
 
-Iceforge requires a working Node.js and NPM installation.
+Iceforge requires a working Node.js and NPM installation.  Refer to their websites to read [how to install Node.js](https://nodejs.org/en/download/package-manager) and [how to install NPM](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm).
 
-FIXME to complete.
+To install Iceforge on your system use the command: 
+
+`$ npm install -g iceforge`
 
 ## Usage (summary)
 
