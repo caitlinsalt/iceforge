@@ -1,11 +1,9 @@
 {
     "compilerOptions": {
+        "declaration": true,
         "module": "nodenext",
-        //"moduleResolution": "node",
         "noImplicitAny": true,
         "outDir": "./dist",
-        //"target": "es6",
-        //"esModuleInterop": true
         "skipLibCheck": true
     },
     "include": [
