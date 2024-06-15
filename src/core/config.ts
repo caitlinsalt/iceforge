@@ -31,7 +31,11 @@ export default class Config implements IConfig {
     // Object containing modules to import before generating any files.  For example, JS libraries
     // you may want to access when rendering templates.  Each entry's key is the alias it can be accessed by
     // in the render context, and the value is the name of the library.  
-    require: ModuleMap;
+    imports: ModuleMap;
+
+    // require is a synonym for imports, retained for backwards compatibility with Wintersmith.  The contents of require
+    // are imported before the contents of imports.
+    require?: ModuleMap;
 
     // Path to the templates directory.  Files in this directory will be treated as templates.
     templates: string;
@@ -90,7 +94,7 @@ export const defaultConfig: IConfig = {
     ignore: [],
     locals: {},
     plugins: [],
-    require: {},
+    imports: {},
     filename: null,
     templates: './templates',
     views: null,

@@ -121,7 +121,8 @@ export default class Environment extends EventEmitter implements IEnvironment {
     }
 
     // Load the contents of config.locals into this.locals; then import any modules listed in
-    // config.require and make their default exports accessible as properties of this.locals also.
+    // config.require and config.imports and make their default exports accessible as properties 
+    // of this.locals also.
     async setupLocals() {
         this.locals = {};
         if (typeof this.config.locals === 'string') {
@@ -132,16 +133,17 @@ export default class Environment extends EventEmitter implements IEnvironment {
             this.locals = this.config.locals;
         }
 
-        logger.verbose(`Loading the following: ${JSON.stringify(this.config.require)}`);
-        for (const alias of Object.keys(this.config.require)) {
-            logger.verbose(`Loading module '${this.config.require[alias]}' available in locals as '${alias}'`);
+        const importables = { ...this.config.require, ...this.config.imports };
+        logger.verbose(`Loading the following: ${JSON.stringify(importables)}`);
+        for (const alias of Object.keys(importables)) {
+            logger.verbose(`Loading module '${importables[alias]}' available in locals as '${alias}'`);
             if (alias in this.locals) {
-                logger.warn(`Module '${this.config.require[alias]}' overwrites previous local with the same key ('${alias}')`);
+                logger.warn(`Module '${importables[alias]}' overwrites previous local with the same key ('${alias}')`);
             }
             try {
-                this.locals[alias] = (await this.loadModule(this.config.require[alias])).default;
+                this.locals[alias] = (await this.loadModule(importables[alias])).default;
             } catch (error) {
-                this.logger.warn(`Unable to load '${this.config.require[alias]}': ${error.message}`);
+                this.logger.warn(`Unable to load '${importables[alias]}': ${error.message}`);
             }
         }
     }
