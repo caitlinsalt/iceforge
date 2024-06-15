@@ -146,7 +146,7 @@ const parseMarkdown = (content: ContentPlugin, markdown: string, baseUrl: string
 
     const marked = new Marked(
         options, 
-        highlightRoutine, 
+        //highlightRoutine, 
         markedMangle(), 
         markedSmartypants(), 
         gfmHeadingId(headingIdOptions)
