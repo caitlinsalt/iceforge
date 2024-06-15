@@ -1,6 +1,6 @@
 {
   "name": "iceforge",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A static site generator forked from Wintersmith",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -54,7 +54,7 @@
     "luxon": "^3.4.4",
     "marked": "^5.1.2",
     "marked-gfm-heading-id": "^3.2.0",
-    "marked-highlight": "^2.1.2",
+    "marked-highlight": "=2.1.1",
     "marked-mangle": "^1.1.8",
     "marked-smartypants": "^1.1.7",
     "mime": "^3.0.0",
