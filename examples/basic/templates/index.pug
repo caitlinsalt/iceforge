@@ -1,0 +1,9 @@
+//- An extremely simple template, almost the minimal sensible web page.
+doctype html
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    title= locals.title
+  body
+    h1= page.title
+    != page.html

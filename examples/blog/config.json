@@ -1,0 +1,30 @@
+{
+  "baseUrl": "/",
+  "locals": {
+    "url": "http://localhost:8080",
+    "name": "Blogging With Iceforge",
+    "owner": "An Iceforge user",
+    "description": "My latest thoughts and ideas"
+  },
+  "plugins": [
+    "./plugins/complex-requires.js",
+    "./plugins/paginator.js",
+    "./plugins/archiver.js",
+    "./plugins/categoriser.js"
+  ],
+  "require": {
+    "luxon": "luxon",
+    "_": "underscore"
+  },
+  "pug": {
+    "pretty": true
+  },
+  "markdown": {
+    "gfm": true,
+    "smartLists": true
+  },
+  "paginator": {
+    "perPage": 3
+  },
+  "restartOnConfigChange": true
+}
