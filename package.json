@@ -17,7 +17,7 @@
     "dev": "tsc --watch",
     "prepack": "tsc",
     "lint": "eslint --ext .js,.ts --ignore-path .eslintignore",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest"
   },
   "repository": {
     "type": "git",
