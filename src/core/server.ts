@@ -268,8 +268,12 @@ const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
         let responseCode: number;
         if (!handlerFeedback || handlerFeedback.error) {
             responseCode = handlerFeedback ? handlerFeedback.code : 404;
-            response.writeHead(responseCode, { 'Content-Type': 'text/plain' });
-            response.end(handlerFeedback.error ? handlerFeedback.error.message : '404 Not Found\n');
+            if (!response.headersSent && response.socket) {
+                response.writeHead(responseCode, { 'Content-Type': 'text/plain' });
+            }
+            if (!response.writableEnded && response.socket) {
+                response.end(handlerFeedback.error ? handlerFeedback.error.message : '404 Not Found\n');
+            }
         } else {
             responseCode = handlerFeedback.code;
         }
