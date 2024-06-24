@@ -130,7 +130,7 @@ export default class Environment extends EventEmitter implements IEnvironment {
             this.logger.verbose(`Loading locals from ${filename}`);
             this.locals = await readJson(filename);
         } else {
-            this.locals = this.config.locals;
+            this.locals = { ...this.config.locals };
         }
 
         const importables = { ...this.config.require, ...this.config.imports };
