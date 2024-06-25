@@ -25,3 +25,7 @@ export class FakePlugin extends ContentPlugin {
         return this.getUrl('/');
     }
 }
+
+const registrationFunction = async () => true;
+
+export default registrationFunction;

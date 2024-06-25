@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import * as winston from 'winston';
 import * as url from 'node:url';
 import * as path from 'node:path';
@@ -7,9 +7,12 @@ import Environment from '../../core/environment';
 import { defaultConfig } from '../../core/config';
 import { transports } from '../../core/logger';
 import StaticFile from '../../core/staticFile';
-import { TestContext } from 'node:test';
 import { FakePlugin } from './fakes/fakePlugin';
 import FakeTemplate from './fakes/fakeTemplate';
+import { IContentTree } from '../../core/coreTypes';
+import ContentTree from '../../core/contentTree';
+import { JsonPage, MarkdownPage } from '../../plugins/markdown';
+import { Page } from '../../plugins/page';
 
 const testLogger = winston.createLogger({
     exitOnError: true,
@@ -343,46 +346,459 @@ describe('reset() tests', () => {
 });
 
 describe('setConfig() tests', () => {
-    test.todo('config property is set');
-    test.todo('contentsPath property is set');
-    test.todo('templatesPath property is set');
+    test('config property is set', async () => {
+        const initialTestConfig = { ...defaultConfig };
+        const testConfig = { ...defaultConfig, contents: 'definitelyDifferent' };
+        const testObject = await Environment.factory(initialTestConfig, 'testDir', testLogger);
+
+        await testObject.setConfig(testConfig);
+
+        expect(testObject.config).toStrictEqual(testConfig);
+    });
+
+    test('contentsPath property is set', async () => {
+        const initialTestConfig = { ...defaultConfig };
+        const testConfig = { ...defaultConfig, contents: 'definitelyDifferent' };
+        const testObject = await Environment.factory(initialTestConfig, 'testDir', testLogger);
+
+        await testObject.setConfig(testConfig);
+
+        expect(testObject.contentsPath.endsWith('definitelyDifferent')).toBeTruthy();
+    });
+
+    test('templatesPath property is set', async () => {
+        const initialTestConfig = { ...defaultConfig };
+        const testConfig = { ...defaultConfig, templates: 'definitelyDifferent' };
+        const testObject = await Environment.factory(initialTestConfig, 'testDir', testLogger);
+
+        await testObject.setConfig(testConfig);
+
+        expect(testObject.templatesPath.endsWith('definitelyDifferent')).toBeTruthy();
+    });
 });
 
 describe('setupLocals() tests', () => {
-    test.todo('locals property is empty if config.locals is empty, config.imports is empty and config.require is empty');
-    test.todo('locals property contains data set in config.locals if config.locals is an object');
-    test.todo('locals property contains data loaded from the file named in config.locals if config.locals is a string');
-    test.todo('locals property contains modules listed in config.imports');
-    test.todo('locals property contains modules listed in config.require');
+    test('locals property is empty if config.locals is empty, config.imports is empty and config.require is empty', async () => {
+        const testConfig = { ...defaultConfig, locals: {}, imports: {}, require: {} };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.locals['testProperty'] = { value: 'test' };
+
+        await testObject.setupLocals();
+
+        expect(testObject.locals).toStrictEqual({});
+    });
+
+    test('locals property contains data set in config.locals if config.locals is an object', async () => {
+        const testConfig = { ...defaultConfig, locals: {}, imports: {}, require: {} };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testConfig.locals = { value: 'test' };
+
+        await testObject.setupLocals();
+
+        expect(testObject.locals).toStrictEqual({ value: 'test' });
+    });
+
+    test('locals property contains data loaded from the file named in config.locals if config.locals is a string', async () => {
+        const testConfig = { ...defaultConfig, locals: {}, imports: {}, require: {} };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testConfig.locals = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakeLocals.json');
+
+        await testObject.setupLocals();
+
+        expect(testObject.locals).toStrictEqual({
+            test: 'valueFromFile'
+        });
+    });
+
+    test('locals property contains modules listed in config.imports', async () => {
+        const testConfig = { ...defaultConfig, locals: {}, imports: {}, require: {} };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakeModule.ts');
+        testConfig.imports = { fakeModule: fakePath };
+
+        await testObject.setupLocals();
+
+        expect(testObject.locals.fakeModule).toBeTruthy();
+        expect(testObject.locals.fakeModule.testFunction).toBeInstanceOf(Function);
+    });
+
+    test('locals property contains modules listed in config.require', async () => {
+        const testConfig = { ...defaultConfig, locals: {}, imports: {}, require: {} };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakeModule.ts');
+        testConfig.require = { fakeModule: fakePath };
+
+        await testObject.setupLocals();
+
+        expect(testObject.locals.fakeModule).toBeTruthy();
+        expect(testObject.locals.fakeModule.testFunction).toBeInstanceOf(Function);
+    });
 });
 
 describe('registerContentPlugin() tests', () => {
-    test.todo('Adds plugin constructor to plugins');
-    test.todo('Adds correct plugin definition to contentPlugins');
+    test('Adds plugin constructor to plugins', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        testObject.registerContentPlugin('test', 'tests/*', FakePlugin);
+
+        expect(testObject.plugins.FakePlugin).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBe(FakePlugin);
+    });
+
+    test('Adds correct plugin definition to contentPlugins', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        testObject.registerContentPlugin('test', 'tests/*', FakePlugin);
+
+        expect(testObject.contentPlugins.length).toBe(1);
+        expect(testObject.contentPlugins[0].class).toBe(FakePlugin);
+        expect(testObject.contentPlugins[0].name).toBe('FakePlugin');
+        expect(testObject.contentPlugins[0].group).toBe('test');
+        expect(testObject.contentPlugins[0].pattern).toBe('tests/*');
+    });
 });
 
 describe('registerTemplatePlugin() tests', () => {
-    test.todo('Adds plugin constructor to plugins');
-    test.todo('Adds correct plugin definition to templatePlugins');
+    test('Adds plugin constructor to plugins', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        testObject.registerTemplatePlugin('*.test.template', FakeTemplate);
+
+        expect(testObject.plugins.FakeTemplate).toBeTruthy();
+        expect(testObject.plugins.FakeTemplate).toBe(FakeTemplate);
+    });
+
+    test('Adds correct plugin definition to templatePlugins', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        testObject.registerTemplatePlugin('*.test.template', FakeTemplate);
+
+        expect(testObject.templatePlugins.length).toBe(1);
+        expect(testObject.templatePlugins[0].class).toBe(FakeTemplate);
+        expect(testObject.templatePlugins[0].pattern).toBe('*.test.template');
+    });
 });
 
 describe('registerGenerator() tests', () => {
-    test.todo('Adds correct generator definition to generators if called with two parameters');
-    test.todo('Adds correct generator definition to generators if called with three parameters');
+    test('Adds correct generator definition to generators if called with two parameters', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const testGenerator = async (x: IContentTree) => x;
+
+        testObject.registerGenerator('testGen', testGenerator);
+
+        expect(testObject.generators.length).toBe(1);
+        expect(testObject.generators[0].group).toBe('testGen');
+        expect(testObject.generators[0].name).toBe('testGen');
+        expect(testObject.generators[0].fn).toBe(testGenerator);
+    });
+
+    test('Adds correct generator definition to generators if called with three parameters', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const testGenerator = async (x: IContentTree) => x;
+
+        testObject.registerGenerator('testGen', 'genGroup', testGenerator);
+
+        expect(testObject.generators.length).toBe(1);
+        expect(testObject.generators[0].group).toBe('genGroup');
+        expect(testObject.generators[0].name).toBe('testGen');
+        expect(testObject.generators[0].fn).toBe(testGenerator);
+    });
 });
 
 describe('registerView() tests', () => {
-    test.todo('Adds view to views correctly');
+    test('Adds view to views correctly', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const testView = async () => null;
+
+        testObject.registerView('viewTest', testView);
+
+        expect(testObject.views.viewTest).toBeTruthy();
+        expect(testObject.views.viewTest).toBe(testView);
+    });
 });
 
 describe('getContentGroups() tests', () => {
-    test.todo('Returns all groups defined by content plugins');
-    test.todo('Returns all groups defined by generators');
-    test.todo('Returns unique set of groups');
+    test('Returns all groups defined by content plugins', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.contentPlugins.push(
+            { name: 'fake1', group: 'firstTestGroup', pattern: '*', class: FakePlugin },
+            { name: 'fake1', group: 'secondTestGroup', pattern: '*', class: FakePlugin }
+        );
+
+        const testOutput = testObject.getContentGroups();
+
+        expect(testOutput.length).toBe(2);
+        expect(testOutput).toContain('firstTestGroup');
+        expect(testOutput).toContain('secondTestGroup');
+    });
+
+    test('Returns all groups defined by generators', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const testGenerator = async (x: IContentTree) => x;
+        testObject.generators.push(
+            { name: 'fake', group: 'firstTestGen', fn: testGenerator },
+            { name: 'fake', group: 'secondTestGen', fn: testGenerator }
+        );
+
+        const testOutput = testObject.getContentGroups();
+
+        expect(testOutput.length).toBe(2);
+        expect(testOutput).toContain('firstTestGen');
+        expect(testOutput).toContain('secondTestGen');
+    });
+
+    test('Returns all groups defined by both plugins and generators', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const testGenerator = async (x: IContentTree) => x;
+        testObject.contentPlugins.push(
+            { name: 'fake1', group: 'firstTestGroup', pattern: '*', class: FakePlugin },
+            { name: 'fake1', group: 'secondTestGroup', pattern: '*', class: FakePlugin }
+        );
+        testObject.generators.push(
+            { name: 'fake', group: 'firstTestGen', fn: testGenerator },
+        );
+
+        const testOutput = testObject.getContentGroups();
+
+        expect(testOutput.length).toBe(3);
+        expect(testOutput).toContain('firstTestGroup');
+        expect(testOutput).toContain('secondTestGroup');
+        expect(testOutput).toContain('firstTestGen');
+    });
+
+    test('Returns unique set of groups', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const testGenerator = async (x: IContentTree) => x;
+        testObject.contentPlugins.push(
+            { name: 'fake1', group: 'firstTestGroup', pattern: '*', class: FakePlugin },
+            { name: 'fake1', group: 'secondTestGroup', pattern: '*', class: FakePlugin },
+            { name: 'fake1', group: 'firstTestGroup', pattern: '*', class: FakePlugin }
+        );
+        testObject.generators.push(
+            { name: 'fake', group: 'firstTestGroup', fn: testGenerator },
+            { name: 'fake', group: 'secondTestGen', fn: testGenerator }
+        );
+
+        const testOutput = testObject.getContentGroups();
+
+        expect(testOutput.length).toBe(3);
+        expect(testOutput).toContain('firstTestGroup');
+        expect(testOutput).toContain('secondTestGroup');
+        expect(testOutput).toContain('secondTestGen');
+    });
 });
 
 describe('loadModule() tests', () => {
-    test.todo('Adds module to loadedModules');
-    test.todo('Returns imported module');
+    test('Adds module to loadedModules', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakeModule.ts');
+
+        await testObject.loadModule(fakePath);
+
+        expect(testObject.loadedModules.length).toBe(1);
+        expect(testObject.loadedModules[0]).toBe(fakePath);
+    });
+
+    test('Returns imported module', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakeModule.ts');
+
+        const testOutput = await testObject.loadModule(fakePath);
+
+        expect(testOutput).toBeTruthy();
+        expect(testOutput.default).toBeTruthy();
+        expect(testOutput.default.testFunction).toBeInstanceOf(Function);
+    });
 });
 
+describe('loadPluginModule() tests', () => {
+    test('When called with a string, adds module to loadedModules', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakePlugin.ts');
+
+        await testObject.loadPluginModule(fakePath);
+
+        expect(testObject.loadedModules.length).toBe(1);
+        expect(testObject.loadedModules[0]).toBe(fakePath);
+    });
+
+    test('When called with a string, calls the module\'s default export', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakePlugin.ts');
+        const mockDefault = vi.fn(async () => true);
+        vi.doMock(fakePath, (orig) => ({
+            ...orig,
+            default: mockDefault
+        }));
+
+        await testObject.loadPluginModule(fakePath);
+
+        expect(mockDefault).toHaveBeenCalled();
+    });
+
+    test('When called with a module, calls the module\'s default export', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakePlugin.ts');
+        const mockDefault = vi.fn(async () => true);
+        vi.doMock(fakePath, (orig) => ({
+            ...orig,
+            default: mockDefault
+        }));
+        const fakeModule = await import(fakePath);
+
+        await testObject.loadPluginModule(fakeModule);
+
+        expect(mockDefault).toHaveBeenCalled();
+    });
+});
+
+describe('loadViewModule() tests', () => {
+    test('Adds module to loadedModules', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakeView.ts');
+
+        await testObject.loadViewModule(fakePath);
+
+        expect(testObject.loadedModules.length).toBe(1);
+        expect(testObject.loadedModules[0]).toBe(fakePath);
+    });
+
+    test('Adds module\'s default export to views', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakeView.ts');
+
+        await testObject.loadViewModule(fakePath);
+        
+        expect(Object.keys(testObject.views).length).toBe(2);
+        expect(testObject.views['fakeView.ts']).toBeTruthy();
+        const testCheckOutput = await (testObject.views['fakeView.ts'])(testObject, {}, new ContentTree('test'), {}) as Buffer;
+        expect(testCheckOutput).toBeTruthy();
+        expect(testCheckOutput.toString()).toBe('Fake output');
+    });
+});
+
+describe('loadPlugins() tests', () => {
+    test('Loads MarkdownPage plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadPlugins();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('markdown.ts'))).toBeTruthy();
+        expect(testObject.plugins.MarkdownPage).toBeTruthy();
+        expect(testObject.plugins.MarkdownPage).toBe(MarkdownPage);
+        const testCheck = testObject.contentPlugins.find(p => p.class === MarkdownPage);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('MarkdownPage');
+        expect(testCheck?.group).toBe('pages');
+        expect(testCheck?.pattern).toBe('**/*.*(markdown|mkd|md)');
+    });
+
+    test('Loads JsonPage plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadPlugins();
+
+        expect(testObject.plugins.JsonPage).toBeTruthy();
+        expect(testObject.plugins.JsonPage).toBe(JsonPage);
+        const testCheck = testObject.contentPlugins.find(p => p.class === JsonPage);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('JsonPage');
+        expect(testCheck?.group).toBe('pages');
+        expect(testCheck?.pattern).toBe('**/*.json');
+    });
+
+    test('Loads Page plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadPlugins();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('page.ts'))).toBeTruthy();
+        expect(testObject.plugins.Page).toBeTruthy();
+        expect(testObject.plugins.Page).toBe(Page);
+        expect(testObject.views.template).toBeInstanceOf(Function);
+    });
+
+    test.todo('Loads PugTemplate plugin');
+    test.todo('Loads plugin listed in config object');
+});
+
+describe('loadViews() tests', () => {
+    test.todo('Succeeds if config.views is empty');
+    test.todo('Loads views from config.views');
+});
+
+describe('getContents() tests', () => {
+    test.todo('Loads content tree from files'); 
+    test.todo('Calls all generators');
+    test.todo('Includes content loaded from generators in tree');
+    test.todo('Merges content from files and content from generators');
+});
+
+describe('getLocals() tests', () => {
+    test.todo('Returns this.locals asynchronously');
+});
+
+describe('getTemplates() tests', () => {
+    test.todo('Calls loadTemplates()');
+    test.todo('Returns result of loadTemplates() call');
+});
+
+describe('load() tests', () => {
+    test.todo('Loads MarkdownPage plugin');
+    test.todo('Loads JsonPage plugin');
+    test.todo('Loads Page plugin');
+    test.todo('Loads PugTemplate plugin');
+    test.todo('Loads plugin listed in config object');
+    test.todo('Succeeds if config.views is empty');
+    test.todo('Loads views from config.views');
+    test.todo('Loads content tree from files'); 
+    test.todo('Calls all generators');
+    test.todo('Includes content loaded from generators in tree');
+    test.todo('Merges content from files and content from generators');
+    test.todo('Calls loadTemplates()');
+    test.todo('Returns result of loadTemplates() call');
+    test.todo('Returns this.locals');
+});
+
+describe('preview() tests', () => {
+    test.todo('Sets mode to preview');
+    test.todo('Calls server.run()');
+});
+
+describe('build() tests', () => {
+    test.todo('Sets mode to build');
+    test.todo('Loads MarkdownPage plugin');
+    test.todo('Loads JsonPage plugin');
+    test.todo('Loads Page plugin');
+    test.todo('Loads PugTemplate plugin');
+    test.todo('Loads plugin listed in config object');
+    test.todo('Succeeds if config.views is empty');
+    test.todo('Loads views from config.views');
+    test.todo('Loads content tree from files'); 
+    test.todo('Calls all generators');
+    test.todo('Includes content loaded from generators in tree');
+    test.todo('Merges content from files and content from generators');
+    test.todo('Calls loadTemplates()');
+    test.todo('Calls render()');
+});

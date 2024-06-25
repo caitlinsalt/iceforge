@@ -313,7 +313,16 @@ export default class Environment extends EventEmitter implements IEnvironment {
         const require = createRequire(import.meta.url);
         for (const plugin of Environment.defaultPlugins) {
             this.logger.verbose(`Loading default plugin ${plugin}`);
-            const id = pathToFileURL(require.resolve(`./../plugins/${plugin}`)).toString();
+            let id;
+
+            // This is a slight hack to work around there being two different use cases: loading the compiled JavaScript code 
+            // at normal runtime, and loading the uncompiled TypeScript code during testing.
+            try {
+                id = pathToFileURL(require.resolve(`./../plugins/${plugin}`)).toString();
+            } catch {
+                id = pathToFileURL(require.resolve(`./../plugins/${plugin}.ts`)).toString();
+            }
+
             const module = await import(id);
             this.loadedModules.push(id);
             await this.loadPluginModule(module);
