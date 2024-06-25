@@ -47,7 +47,7 @@ export class Page extends ContentPlugin {
         let filename = replaceAll(template, {
             ':year': this.date.getFullYear().toString(),
             ':month': ('0' + (this.date.getMonth() + 1)).slice(-2),
-            ':day': ('0' + (this.date.getDay() + 1)).slice(-2),
+            ':day': ('0' + (this.date.getDate() + 1)).slice(-2),
             ':title': slugger.slug(this.title),
             ':file': file,
             ':ext': ext,
