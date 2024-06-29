@@ -42,7 +42,6 @@ export class PugTemplate extends TemplatePlugin {
 }
 
 // The Pug template module only registers the Pug template plugin.
-
 const registerPlugin = async (env: IEnvironment) => {
     environment = env;
     env.registerTemplatePlugin('**/*.*(pug|jade)', PugTemplate);

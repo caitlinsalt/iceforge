@@ -5,13 +5,13 @@ import { fileExists } from '../core/utils.js';
 import * as fs from 'fs/promises';
 import { ParsedArgs } from 'minimist';
 import * as fse from 'fs-extra';
-import { logger } from '../core/logger.js';
+import logger from '../core/logger.js';
 import { spawn } from 'node:child_process';
 import { getStoragePath } from './common.js';
 
 // Module implementing the new command.
 
-const siteTemplates: StringMap = { };
+export const siteTemplates: StringMap = { };
 
 const loadSiteTemplates = async (directory: string) => {
     if (!(await fileExists(directory))) {
@@ -61,8 +61,8 @@ export const options = {
 };
 
 interface NewOpts extends ParsedArgs {
-    template: string,
-    force: boolean;
+    template?: string,
+    force?: boolean;
 }
 
 // Check for the existence of the template, copy the template's contents into the site folder, and run "npm install" inside the site folder.
@@ -125,7 +125,7 @@ const createSite = async (argv: NewOpts) => {
     try {
         await validateDestination();
     } catch (error) {
-        logger.error(error.nessage, error);
+        logger.error(error.message, error);
         process.exit(1);
     }
 

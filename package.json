@@ -1,6 +1,6 @@
 {
   "name": "iceforge",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A static site generator forked from Wintersmith",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -30,11 +30,11 @@
   },
   "homepage": "https://github.com/caitlinsalt/iceforge#readme",
   "devDependencies": {
-    "@types/node": "^20.14.2",
+    "@types/node": "^20.14.10",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.57.0",
-    "typescript": "^5.4.5",
+    "typescript": "^5.5.3",
     "vitest": "^1.6.0"
   },
   "dependencies": {
@@ -50,7 +50,7 @@
     "chokidar": "^3.6.0",
     "fs-extra": "^11.2.0",
     "github-slugger": "^2.0.0",
-    "highlight.js": "^11.9.0",
+    "highlight.js": "^11.10.0",
     "js-yaml": "^4.1.0",
     "luxon": "^3.4.4",
     "marked": "^5.1.2",
@@ -59,10 +59,10 @@
     "marked-mangle": "^1.1.8",
     "marked-smartypants": "^1.1.7",
     "mime": "^3.0.0",
-    "minimatch": "^9.0.4",
+    "minimatch": "^9.0.5",
     "minimist": "^1.2.8",
     "pug": "^3.0.3",
     "server-destroy": "^1.0.1",
-    "winston": "^3.13.0"
+    "winston": "^3.13.1"
   }
 }

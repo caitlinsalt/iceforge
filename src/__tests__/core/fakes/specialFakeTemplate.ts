@@ -1,16 +1,15 @@
 import { FilePath } from '../../../core/coreTypes';
 import TemplatePlugin from '../../../core/templatePlugin';
 
-export default class FakeTemplate extends TemplatePlugin {
+import FakeTemplate from './fakeTemplate';
 
-    __filepath: FilePath;
-
+export default class SpecialFakeTemplate extends FakeTemplate {
     get name() {
-        return 'FakeTemplate';
+        return 'SpecialFakeTemplate';
     }
-    
+
     static async fromFile(filepath: FilePath): Promise<TemplatePlugin> {
-        const ft = new FakeTemplate();
+        const ft = new SpecialFakeTemplate();
         ft.__filepath = filepath;
         return ft;
     }

@@ -3,7 +3,7 @@ import parseArgv from 'minimist';
 
 import version from './version.js';
 import { extendOptions } from './common.js';
-import { logger } from '../core/logger.js';
+import logger from '../core/logger.js';
 
 const usage = `
 Usage: iceforge [options] [command]
@@ -43,45 +43,53 @@ const globalOptions = {
 const main = async (argv: string[]) => {
     const opts = parseArgv(argv, globalOptions);
     const cmd = opts._[2];
-    let cmdModule;
-    let cmdFunc;
+
+    const handleVersion = async () => {
+        console.log(await version());
+    };
+
+    const runCommand = async (cmd: string) => {
+        const cmdModule = await import(`./${cmd}.js`);
+        const cmdFunc = cmdModule.default;
+
+        if (opts.help) {
+            console.log(cmdModule.usage ? cmdModule.usage : usage);
+        } else {
+            if (opts.verbose) {
+                logger.transports[0].level = 'verbose';
+            }
+
+            if (opts.quiet) {
+                logger.transports[0].level = 'critical';
+            }
+
+            extendOptions(cmdModule.options, globalOptions);
+            const cmdOpts = parseArgv(argv, cmdModule.options);
+            await cmdFunc(cmdOpts);
+        }
+    };
+
+    const validateAndRunCommand = async (cmd: string) => {
+        const validCommands = ['build', 'new', 'preview'];
+
+        if (!cmd) {
+            console.log(usage);
+        } else {
+            if (!validCommands.includes(cmd)) {
+                console.error('Invalid command');
+                console.log(usage);
+                process.exit(1);
+            } else {
+                await runCommand(cmd);
+            }
+        }
+    };
 
     if (opts.version) {
-        console.log(await version());
-        process.exit(0);
-    }
-
-    const validCommands = ['build', 'new', 'plugin', 'preview'];
-
-    if (cmd) {
-        if (!validCommands.includes(cmd)) {
-            console.error('Invalid command');
-            console.log(usage);
-            process.exit(1);
-        }
-        cmdModule = await import(`./${cmd}.js`);
-        cmdFunc = cmdModule.default;
+        await handleVersion();
     } else {
-        console.log(usage);
-        process.exit(0);
+        await validateAndRunCommand(cmd);
     }
-
-    if (opts.help) {
-        console.log(cmdModule.usage ? cmdModule.usage : usage);
-        process.exit(0);
-    }
-
-    if (opts.verbose) {
-        logger.transports[0].level = 'verbose';
-    }
-
-    if (opts.quiet) {
-        logger.transports[0].level = 'critical';
-    }
-
-    extendOptions(cmdModule.options, globalOptions);
-    const cmdOpts = parseArgv(argv, cmdModule.options);
-    await cmdFunc(cmdOpts);
 };
 
 export default main;

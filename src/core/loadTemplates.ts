@@ -3,11 +3,11 @@ import * as path from 'node:path';
 import { FilePath, IEnvironment, TemplateMap } from './coreTypes.js';
 import { readDirRecursive } from './utils.js';
 import { minimatch } from 'minimatch';
-import { logger } from './logger.js';
+import logger from './logger.js';
 
 // Load the available templates from the environment's template path, creating a template plugin instance for
 // each template.  Returns the template plugin instances indexed by the templates' filenames.
-export const loadTemplates = async (env: IEnvironment): Promise<TemplateMap> => {
+const loadTemplates = async (env: IEnvironment): Promise<TemplateMap> => {
     
     const templates: TemplateMap = {}; 
 
@@ -41,3 +41,5 @@ export const loadTemplates = async (env: IEnvironment): Promise<TemplateMap> => 
 
     return templates;
 };
+
+export default loadTemplates;

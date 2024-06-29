@@ -23,7 +23,7 @@ import ContentTree from '../core/contentTree.js';
 import ContentPlugin from '../core/contentPlugin.js';
 import { Page } from './page.js';
 import { IContentTree, FilePath, IEnvironment, Indexable } from '../core/coreTypes.js';
-import { readJson } from '../core/utils.js';
+import { readJson, urlResolve } from '../core/utils.js';
 
 // This is a slightly fishy absolute URI test: it selects anything that looks like it could start with a scheme.
 const isAbsoluteUri = (url: string): boolean => {
@@ -31,7 +31,7 @@ const isAbsoluteUri = (url: string): boolean => {
 };
 
 // Rewrite a URL target if it is relative
-const resolveLink = (content: ContentPlugin, uri: string): string => {
+const resolveLink = (content: ContentPlugin, uri: string, baseUri: string): string => {
 
     if (isAbsoluteUri(uri)) {
         // Absolute URI - trust the user.
@@ -74,7 +74,7 @@ const resolveLink = (content: ContentPlugin, uri: string): string => {
     if (nav && nav instanceof ContentPlugin) {
         return nav.url + hashPart;
     }
-    return uri;
+    return urlResolve(baseUri, uri);
 };
 
 // Simplified versions of Marked's actual types.
@@ -103,8 +103,8 @@ const highlighter = (code: string, lang: string): string => {
 };
 
 // The link renderer function is essentially copied from the Marked.js source code, but with the link rewritten before rendering.
-const linkRenderer = (content: ContentPlugin, baseUrl: string, href: string, title: string, text: string): string => {
-    href = resolveLink(content, href);
+export const linkRenderer = (content: ContentPlugin, baseUrl: string, href: string, title: string, text: string): string => {
+    href = resolveLink(content, href, baseUrl);
     if (href === null) {
         return text;
     }
@@ -117,8 +117,8 @@ const linkRenderer = (content: ContentPlugin, baseUrl: string, href: string, tit
 };
 
 // The image renderer function is essentially copied from the Marked.js source code, but with the link rewritten before rendering.
-const imageRenderer = (content: ContentPlugin, baseUrl: string, href: string, title: string, text: string): string => {
-    href = resolveLink(content, href);
+export const imageRenderer = (content: ContentPlugin, baseUrl: string, href: string, title: string, text: string): string => {
+    href = resolveLink(content, href, baseUrl);
     if (href === null) {
         return text;
     }
@@ -256,7 +256,7 @@ export class JsonPage extends MarkdownPage {
 
     static async fromFile(filepath: FilePath): Promise<JsonPage> {
         const metadata = await readJson(filepath.full);
-        const markdown = metadata.content || '';
+        const markdown = metadata?.content || '';
         return new JsonPage(filepath, metadata, markdown);
     }
 }

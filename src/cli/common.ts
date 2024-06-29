@@ -1,7 +1,8 @@
 import { Opts } from 'minimist';
 import path from 'node:path';
+
 import { CommonOptions, IEnvironment, Indexable } from '../core/coreTypes.js';
-import { logger } from '../core/logger.js';
+import logger from '../core/logger.js';
 import { fileExists } from '../core/utils.js';
 import Config, { defaultConfig } from '../core/config.js';
 import Environment from '../core/environment.js';
@@ -16,6 +17,7 @@ export const commonOptions = {
         'contents',
         'templates',
         'locals',
+        'imports',
         'require',
         'plugins',
         'ignore'
@@ -32,13 +34,12 @@ export const commonOptions = {
         contents: 'i',
         templates: 't',
         locals: 'L',
+        imports: 'M',
         require: 'R',
         plugins: 'p',
         ignore: 'I'
     }
 };
-
-export const options = {};
 
 // A standard usage message for the common options shared across multiple verbs, to be inserted into those verbs' usage messages at the appropriate point
 export const commonUsage = 
@@ -47,7 +48,8 @@ export const commonUsage =
   -i, --contents [path]     Path to contents location (defaults to ${commonOptions.default.contents}).
   -t, --templates [path]    Path to template location (defaults to ${commonOptions.default.templates}).
   -L, --locals [path]       Optional path to JSON file containing template context data.
-  -R, --require             Comma-separated list of additional modules to import into the template context.
+  -M, --imports [list]       Comma-separated list of additional modules to import into the template context, in alias:module format.
+  -R, --require [list]      Synonym for --import
   -P, --plugins             Comma-separated list of modules to load as plugins.
   -I, --ignore              Comma-separated list of filenames or filename glob patterns to ignore.
 `;
@@ -99,11 +101,11 @@ export const loadEnv = async (options: CommonOptions) : Promise<IEnvironment> =>
         }
         if (key === 'port') {
             value = Number(options[key]);
-        } else if (['ignore', 'require', 'plugins'].includes(key)) {
+        } else if (['ignore', 'imports', 'require', 'plugins'].includes(key)) {
             value = (options[key] as string).split(',');
-            if (key === 'require') {
+            if (['imports', 'require'].includes(key)) {
                 const reqs : Indexable = {};
-                for (const v in value) {
+                for (const v of value) {
                     let [alias, module] = v.split(':');
                     if (!module) {
                         module = alias;

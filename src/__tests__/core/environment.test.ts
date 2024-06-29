@@ -1,23 +1,39 @@
-import { describe, expect, test, vi } from 'vitest';
-import * as winston from 'winston';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import * as url from 'node:url';
 import * as path from 'node:path';
+import { createServer } from 'node:http';
 
 import Environment from '../../core/environment';
 import { defaultConfig } from '../../core/config';
-import { transports } from '../../core/logger';
 import StaticFile from '../../core/staticFile';
+import { IContentTree, GeneratorDef } from '../../core/coreTypes';
+import ContentTree from '../../core/contentTree';
+import loadTemplates from '../../core/loadTemplates';
+import { Page } from '../../plugins/page';
+import { PugTemplate } from '../../plugins/pug';
+import { JsonPage, MarkdownPage } from '../../plugins/markdown';
+import runGenerator from '../../core/generator';
+import ContentPlugin from '../../core/contentPlugin';
+import render from '../../core/render';
+
 import { FakePlugin } from './fakes/fakePlugin';
 import FakeTemplate from './fakes/fakeTemplate';
-import { IContentTree } from '../../core/coreTypes';
-import ContentTree from '../../core/contentTree';
-import { JsonPage, MarkdownPage } from '../../plugins/markdown';
-import { Page } from '../../plugins/page';
+import { expectEquivalentTrees, getFakeTree, testLogger } from '../testUtils';
 
-const testLogger = winston.createLogger({
-    exitOnError: true,
-    transports: transports,
-    silent: true
+vi.mock('../../core/loadTemplates');
+vi.mock('../../core/server');
+vi.mock('../../core/contentTree', async (imp) => {
+    const orig = await imp<typeof import('../../core/contentTree')>();
+    orig.default.fromDirectory = vi.fn();
+    return orig;
+});
+vi.mock('../../core/generator');
+vi.mock('../../core/render', () => ({
+    default: vi.fn(() => Promise.resolve())
+}));
+
+afterEach(() => {
+    vi.resetAllMocks();
 });
 
 describe('Constructor/factory() tests', () => {
@@ -649,6 +665,7 @@ describe('loadPluginModule() tests', () => {
         await testObject.loadPluginModule(fakePath);
 
         expect(mockDefault).toHaveBeenCalled();
+        vi.doUnmock(fakePath);
     });
 
     test('When called with a module, calls the module\'s default export', async () => {
@@ -665,6 +682,7 @@ describe('loadPluginModule() tests', () => {
         await testObject.loadPluginModule(fakeModule);
 
         expect(mockDefault).toHaveBeenCalled();
+        vi.doUnmock(fakePath);
     });
 });
 
@@ -739,66 +757,828 @@ describe('loadPlugins() tests', () => {
         expect(testObject.views.template).toBeInstanceOf(Function);
     });
 
-    test.todo('Loads PugTemplate plugin');
-    test.todo('Loads plugin listed in config object');
+    test('Loads PugTemplate plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadPlugins();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('pug.ts'))).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBe(PugTemplate);
+        const testCheck = testObject.templatePlugins.find(p => p.class === PugTemplate);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.pattern).toBe('**/*.*(pug|jade)');
+    });
+
+    test('Loads plugin listed in config object', async () => {
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakePlugin.ts');
+        const testConfig = { ...defaultConfig, plugins: [ fakePath ] };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadPlugins();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('fakePlugin.ts'))).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBe(FakePlugin);
+        const testCheck = testObject.contentPlugins.find(p => p.class === FakePlugin);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('FakePlugin');
+        expect(testCheck?.group).toBe('fakePages');
+        expect(testCheck?.pattern).toBe('**/*.fake');
+    });
 });
 
 describe('loadViews() tests', () => {
-    test.todo('Succeeds if config.views is empty');
-    test.todo('Loads views from config.views');
+    test('Succeeds if config.views is empty', async () => {
+        const testConfig = { ...defaultConfig, views: '' };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadViews();
+    });
+
+    test('Loads views from config.views', async () => {
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakePath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadViews();
+
+        expect(Object.keys(testObject.views).length).toBe(3);
+        expect(testObject.views['firstFakeView.ts']).toBeTruthy();
+        expect(testObject.views['firstFakeView.ts']).toBeInstanceOf(Function);
+        expect(testObject.views['secondFakeView.ts']).toBeTruthy();
+        expect(testObject.views['secondFakeView.ts']).toBeInstanceOf(Function);
+    });
+
+    test('Loading custom views does not remove the default "none" view', async () => {
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakePath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadViews();
+
+        expect(testObject.views.none).toBeTruthy();
+        expect(testObject.views.none).toBeInstanceOf(Function);
+    });
 });
 
 describe('getContents() tests', () => {
-    test.todo('Loads content tree from files'); 
-    test.todo('Calls all generators');
-    test.todo('Includes content loaded from generators in tree');
-    test.todo('Merges content from files and content from generators');
+    test('Loads content tree from files', async () => {
+        const testTree = getFakeTree('testTree');
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => testTree);
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        const testOutput = await testObject.getContents();
+
+        expectEquivalentTrees(getFakeTree(''), testOutput, true, true);
+    });
+
+    test('Calls all generators', async () => {
+        const startingTree = new ContentTree('empty');
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => startingTree);
+        const testGenerator1 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => new ContentTree('gen1'))
+        };
+        const testGenerator2 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => new ContentTree('gen2'))
+        };
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.generators.push(testGenerator1, testGenerator2);
+
+        await testObject.getContents();
+
+        expect(vi.mocked(runGenerator)).toHaveBeenCalledTimes(2);
+        expect(vi.mocked(runGenerator)).toHaveBeenCalledWith(testObject, startingTree, testGenerator1);
+        expect(vi.mocked(runGenerator)).toHaveBeenCalledWith(testObject, startingTree, testGenerator2);
+    });
+
+    test('Includes content loaded from generators in tree', async () => {
+        const startingTree = new ContentTree('start');
+        const gen1Tree = new ContentTree('gen1');
+        gen1Tree['dir'] = new ContentTree('dir');
+        gen1Tree['dir'].parent = gen1Tree;
+        gen1Tree['dir']['file.md'] = new FakePlugin('file.md', undefined, gen1Tree['dir']);
+        const gen2Tree = new ContentTree('gen2');
+        gen2Tree['top.jpg'] = new FakePlugin('top.jpg', undefined, gen2Tree);
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => startingTree);
+        vi.mocked(runGenerator).mockImplementation(async (env, tree, gendef: GeneratorDef) => await gendef.fn(tree));
+        const testGenerator1 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen1Tree)
+        };
+        const testGenerator2 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen2Tree)
+        };
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.generators.push(testGenerator1, testGenerator2);
+
+        const testOutput = await testObject.getContents();
+
+        expect(testOutput['top.jpg']).toBeTruthy();
+        expect(testOutput['top.jpg']).toBeInstanceOf(FakePlugin);
+        expect((testOutput['top.jpg'] as ContentPlugin).__filename).toBe('top.jpg');
+        expect(testOutput['dir']).toBeTruthy();
+        expect(testOutput['dir']).toBeInstanceOf(ContentTree);
+        expect(testOutput['dir']['file.md']).toBeTruthy();
+        expect(testOutput['dir']['file.md']).toBeInstanceOf(FakePlugin);
+        expect((testOutput['dir']['file.md'] as ContentPlugin).__filename).toBe('file.md');
+    });
+
+    test('Merges content from files and content from generators', async () => {
+        const startingTree = new ContentTree('start');
+        startingTree['static.file'] = new FakePlugin('static.file', undefined, startingTree);
+        const gen1Tree = new ContentTree('gen1');
+        gen1Tree['dir'] = new ContentTree('dir');
+        gen1Tree['dir'].parent = gen1Tree;
+        gen1Tree['dir']['file.md'] = new FakePlugin('file.md', undefined, gen1Tree['dir']);
+        const gen2Tree = new ContentTree('gen2');
+        gen2Tree['top.jpg'] = new FakePlugin('top.jpg', undefined, gen2Tree);
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => startingTree);
+        vi.mocked(runGenerator).mockImplementation(async (env, tree, gendef: GeneratorDef) => await gendef.fn(tree));
+        const testGenerator1 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen1Tree)
+        };
+        const testGenerator2 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen2Tree)
+        };
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.generators.push(testGenerator1, testGenerator2);
+
+        const testOutput = await testObject.getContents();
+
+        expect(testOutput['top.jpg']).toBeTruthy();
+        expect(testOutput['top.jpg']).toBeInstanceOf(FakePlugin);
+        expect((testOutput['top.jpg'] as ContentPlugin).__filename).toBe('top.jpg');
+        expect(testOutput['dir']).toBeTruthy();
+        expect(testOutput['dir']).toBeInstanceOf(ContentTree);
+        expect(testOutput['dir']['file.md']).toBeTruthy();
+        expect(testOutput['dir']['file.md']).toBeInstanceOf(FakePlugin);
+        expect((testOutput['dir']['file.md'] as ContentPlugin).__filename).toBe('file.md');
+        expect(testOutput['static.file']).toBeTruthy();
+        expect(testOutput['static.file']).toBeInstanceOf(FakePlugin);
+        expect((testOutput['static.file'] as ContentPlugin).__filename).toBe('static.file');
+    });
 });
 
 describe('getLocals() tests', () => {
-    test.todo('Returns this.locals asynchronously');
+    test('Returns this.locals asynchronously', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const expectedOutput = { someLocalProperty: 'yes' };
+        testObject.locals = expectedOutput;
+
+        const testOutput = await testObject.getLocals();
+
+        expect(testOutput).toStrictEqual(expectedOutput);
+    });
 });
 
 describe('getTemplates() tests', () => {
-    test.todo('Calls loadTemplates()');
-    test.todo('Returns result of loadTemplates() call');
+    test('Calls loadTemplates()', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        
+        await testObject.getTemplates();
+
+        expect(loadTemplates).toHaveBeenCalledOnce();
+        expect(loadTemplates).toHaveBeenLastCalledWith(testObject);
+    });
+
+    test('Returns result of loadTemplates() call', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const expectedOutput = {};
+        vi.mocked(loadTemplates).mockImplementation(async () => expectedOutput);
+        
+        const testOutput = await testObject.getTemplates();
+
+        expect(testOutput).toBe(expectedOutput);
+    });
 });
 
 describe('load() tests', () => {
-    test.todo('Loads MarkdownPage plugin');
-    test.todo('Loads JsonPage plugin');
-    test.todo('Loads Page plugin');
-    test.todo('Loads PugTemplate plugin');
-    test.todo('Loads plugin listed in config object');
-    test.todo('Succeeds if config.views is empty');
-    test.todo('Loads views from config.views');
-    test.todo('Loads content tree from files'); 
-    test.todo('Calls all generators');
-    test.todo('Includes content loaded from generators in tree');
-    test.todo('Merges content from files and content from generators');
-    test.todo('Calls loadTemplates()');
-    test.todo('Returns result of loadTemplates() call');
-    test.todo('Returns this.locals');
+    test('Loads MarkdownPage plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('markdown.ts'))).toBeTruthy();
+        expect(testObject.plugins.MarkdownPage).toBeTruthy();
+        expect(testObject.plugins.MarkdownPage).toBe(MarkdownPage);
+        const testCheck = testObject.contentPlugins.find(p => p.class === MarkdownPage);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('MarkdownPage');
+        expect(testCheck?.group).toBe('pages');
+        expect(testCheck?.pattern).toBe('**/*.*(markdown|mkd|md)');
+    });
+
+    test('Loads JsonPage plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+
+        expect(testObject.plugins.JsonPage).toBeTruthy();
+        expect(testObject.plugins.JsonPage).toBe(JsonPage);
+        const testCheck = testObject.contentPlugins.find(p => p.class === JsonPage);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('JsonPage');
+        expect(testCheck?.group).toBe('pages');
+        expect(testCheck?.pattern).toBe('**/*.json');
+    });
+
+    test('Loads Page plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('page.ts'))).toBeTruthy();
+        expect(testObject.plugins.Page).toBeTruthy();
+        expect(testObject.plugins.Page).toBe(Page);
+        expect(testObject.views.template).toBeInstanceOf(Function);
+    });
+
+    test('Loads PugTemplate plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('pug.ts'))).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBe(PugTemplate);
+        const testCheck = testObject.templatePlugins.find(p => p.class === PugTemplate);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.pattern).toBe('**/*.*(pug|jade)');
+    });
+
+    test('Loads plugin listed in config object', async () => {
+        const fakePluginPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakePlugin.ts');
+        const testConfig = { ...defaultConfig, plugins: [ fakePluginPath ] };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('fakePlugin.ts'))).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBe(FakePlugin);
+        const testCheck = testObject.contentPlugins.find(p => p.class === FakePlugin);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('FakePlugin');
+        expect(testCheck?.group).toBe('fakePages');
+        expect(testCheck?.pattern).toBe('**/*.fake');
+    });
+
+    test('Succeeds if config.views is empty', async () => {
+        const testConfig = { ...defaultConfig, views: '' };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+    });
+
+    test('Loads views from config.views', async () => {
+        const fakeViewPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakeViewPath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+
+        expect(Object.keys(testObject.views).length).toBe(4);
+        expect(testObject.views['firstFakeView.ts']).toBeTruthy();
+        expect(testObject.views['firstFakeView.ts']).toBeInstanceOf(Function);
+        expect(testObject.views['secondFakeView.ts']).toBeTruthy();
+        expect(testObject.views['secondFakeView.ts']).toBeInstanceOf(Function);
+    });
+
+    test('Loading custom views does not remove the default "none" view', async () => {
+        const fakeViewPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakeViewPath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+
+        expect(testObject.views.none).toBeTruthy();
+        expect(testObject.views.none).toBeInstanceOf(Function);
+    });
+
+    test('Loading custom views does not remove the default "template" view created by the Page plugin', async () => {
+        const fakeViewPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakeViewPath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+
+        expect(testObject.views.template).toBeTruthy();
+        expect(testObject.views.template).toBeInstanceOf(Function);
+    });
+
+    test('Loads content tree from files', async () => {
+        const testTree = getFakeTree('testTree');
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => testTree);
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        const testOutput = await testObject.load();
+
+        expectEquivalentTrees(getFakeTree('', ['pages']), testOutput.contents, true, true);
+    }); 
+
+    test('Calls all generators', async () => {
+        const startingTree = new ContentTree('empty');
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => startingTree);
+        const testGenerator1 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => new ContentTree('gen1'))
+        };
+        const testGenerator2 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => new ContentTree('gen2'))
+        };
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.generators.push(testGenerator1, testGenerator2);
+
+        await testObject.load();
+
+        expect(vi.mocked(runGenerator)).toHaveBeenCalledTimes(2);
+        expect(vi.mocked(runGenerator)).toHaveBeenCalledWith(testObject, startingTree, testGenerator1);
+        expect(vi.mocked(runGenerator)).toHaveBeenCalledWith(testObject, startingTree, testGenerator2);
+    });
+
+    test('Includes content loaded from generators in tree', async () => {
+        const startingTree = new ContentTree('start');
+        const gen1Tree = new ContentTree('gen1');
+        gen1Tree['dir'] = new ContentTree('dir');
+        gen1Tree['dir'].parent = gen1Tree;
+        gen1Tree['dir']['file.md'] = new FakePlugin('file.md', undefined, gen1Tree['dir']);
+        const gen2Tree = new ContentTree('gen2');
+        gen2Tree['top.jpg'] = new FakePlugin('top.jpg', undefined, gen2Tree);
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => startingTree);
+        vi.mocked(runGenerator).mockImplementation(async (env, tree, gendef: GeneratorDef) => await gendef.fn(tree));
+        const testGenerator1 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen1Tree)
+        };
+        const testGenerator2 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen2Tree)
+        };
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.generators.push(testGenerator1, testGenerator2);
+
+        const testOutput = await testObject.load();
+
+        expect(testOutput.contents['top.jpg']).toBeTruthy();
+        expect(testOutput.contents['top.jpg']).toBeInstanceOf(FakePlugin);
+        expect((testOutput.contents['top.jpg'] as ContentPlugin).__filename).toBe('top.jpg');
+        expect(testOutput.contents['dir']).toBeTruthy();
+        expect(testOutput.contents['dir']).toBeInstanceOf(ContentTree);
+        expect(testOutput.contents['dir']['file.md']).toBeTruthy();
+        expect(testOutput.contents['dir']['file.md']).toBeInstanceOf(FakePlugin);
+        expect((testOutput.contents['dir']['file.md'] as ContentPlugin).__filename).toBe('file.md');
+    });
+
+    test('Merges content from files and content from generators', async () => {
+        const startingTree = new ContentTree('start');
+        startingTree['static.file'] = new FakePlugin('static.file', undefined, startingTree);
+        const gen1Tree = new ContentTree('gen1');
+        gen1Tree['dir'] = new ContentTree('dir');
+        gen1Tree['dir'].parent = gen1Tree;
+        gen1Tree['dir']['file.md'] = new FakePlugin('file.md', undefined, gen1Tree['dir']);
+        const gen2Tree = new ContentTree('gen2');
+        gen2Tree['top.jpg'] = new FakePlugin('top.jpg', undefined, gen2Tree);
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => startingTree);
+        vi.mocked(runGenerator).mockImplementation(async (env, tree, gendef: GeneratorDef) => await gendef.fn(tree));
+        const testGenerator1 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen1Tree)
+        };
+        const testGenerator2 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen2Tree)
+        };
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.generators.push(testGenerator1, testGenerator2);
+
+        const testOutput = await testObject.load();
+
+        expect(testOutput.contents['top.jpg']).toBeTruthy();
+        expect(testOutput.contents['top.jpg']).toBeInstanceOf(FakePlugin);
+        expect((testOutput.contents['top.jpg'] as ContentPlugin).__filename).toBe('top.jpg');
+        expect(testOutput.contents['dir']).toBeTruthy();
+        expect(testOutput.contents['dir']).toBeInstanceOf(ContentTree);
+        expect(testOutput.contents['dir']['file.md']).toBeTruthy();
+        expect(testOutput.contents['dir']['file.md']).toBeInstanceOf(FakePlugin);
+        expect((testOutput.contents['dir']['file.md'] as ContentPlugin).__filename).toBe('file.md');
+        expect(testOutput.contents['static.file']).toBeTruthy();
+        expect(testOutput.contents['static.file']).toBeInstanceOf(FakePlugin);
+        expect((testOutput.contents['static.file'] as ContentPlugin).__filename).toBe('static.file');
+    });
+
+    test('Calls loadTemplates()', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        
+        await testObject.load();
+
+        expect(loadTemplates).toHaveBeenCalledOnce();
+        expect(loadTemplates).toHaveBeenLastCalledWith(testObject);
+    });
+
+    test('Returns result of loadTemplates() call', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const expectedOutput = {};
+        vi.mocked(loadTemplates).mockImplementation(async () => expectedOutput);
+        
+        const testOutput = await testObject.load();
+
+        expect(testOutput.templates).toBe(expectedOutput);
+    });
+
+    test('Returns this.locals', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const expectedOutput = { someLocalProperty: 'yes' };
+        testObject.locals = expectedOutput;
+
+        const testOutput = await testObject.load();
+
+        expect(testOutput.locals).toStrictEqual(expectedOutput);
+    });
 });
 
 describe('preview() tests', () => {
-    test.todo('Sets mode to preview');
-    test.todo('Calls server.run()');
+    test('Sets mode to preview', async () => {
+        const mockRun = vi.fn(() => Promise.resolve(createServer()));
+        vi.doMock('../../core/server', async (orig) => {
+            const serverModule = await orig<typeof import('../../core/server')>();
+            return {
+                ...serverModule,
+                run: mockRun
+            };
+        });
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.preview();
+
+        expect(testObject.mode).toBe('preview');
+    });
+
+    test('Calls server.run()', async () => {
+        const mockRun = vi.fn(() => Promise.resolve(createServer()));
+        vi.doMock('../../core/server', async (orig) => {
+            const serverModule = await orig<typeof import('../../core/server')>();
+            return {
+                ...serverModule,
+                run: mockRun
+            };
+        });
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.preview();
+
+        expect(mockRun).toHaveBeenCalledOnce();
+        expect(mockRun).toHaveBeenLastCalledWith(testObject);
+    });
 });
 
 describe('build() tests', () => {
-    test.todo('Sets mode to build');
-    test.todo('Loads MarkdownPage plugin');
-    test.todo('Loads JsonPage plugin');
-    test.todo('Loads Page plugin');
-    test.todo('Loads PugTemplate plugin');
-    test.todo('Loads plugin listed in config object');
-    test.todo('Succeeds if config.views is empty');
-    test.todo('Loads views from config.views');
-    test.todo('Loads content tree from files'); 
-    test.todo('Calls all generators');
-    test.todo('Includes content loaded from generators in tree');
-    test.todo('Merges content from files and content from generators');
-    test.todo('Calls loadTemplates()');
-    test.todo('Calls render()');
+    test('Sets mode to build', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(testObject.mode).toBe('build');
+    });
+
+    test('Loads MarkdownPage plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('markdown.ts'))).toBeTruthy();
+        expect(testObject.plugins.MarkdownPage).toBeTruthy();
+        expect(testObject.plugins.MarkdownPage).toBe(MarkdownPage);
+        const testCheck = testObject.contentPlugins.find(p => p.class === MarkdownPage);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('MarkdownPage');
+        expect(testCheck?.group).toBe('pages');
+        expect(testCheck?.pattern).toBe('**/*.*(markdown|mkd|md)');
+    });
+
+    test('Loads JsonPage plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(testObject.plugins.JsonPage).toBeTruthy();
+        expect(testObject.plugins.JsonPage).toBe(JsonPage);
+        const testCheck = testObject.contentPlugins.find(p => p.class === JsonPage);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('JsonPage');
+        expect(testCheck?.group).toBe('pages');
+        expect(testCheck?.pattern).toBe('**/*.json');
+    });
+
+    test('Loads Page plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('page.ts'))).toBeTruthy();
+        expect(testObject.plugins.Page).toBeTruthy();
+        expect(testObject.plugins.Page).toBe(Page);
+        expect(testObject.views.template).toBeInstanceOf(Function);
+    });
+
+    test('Loads PugTemplate plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('pug.ts'))).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBe(PugTemplate);
+        const testCheck = testObject.templatePlugins.find(p => p.class === PugTemplate);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.pattern).toBe('**/*.*(pug|jade)');
+    });
+
+    test('Loads plugin listed in config object', async () => {
+        const fakePluginPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakePlugin.ts');
+        const testConfig = { ...defaultConfig, plugins: [ fakePluginPath ] };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('fakePlugin.ts'))).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBe(FakePlugin);
+        const testCheck = testObject.contentPlugins.find(p => p.class === FakePlugin);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('FakePlugin');
+        expect(testCheck?.group).toBe('fakePages');
+        expect(testCheck?.pattern).toBe('**/*.fake');
+    });
+
+    test('Succeeds if config.views is empty', async () => {
+        const testConfig = { ...defaultConfig, views: '' };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+    });
+
+    test('Loads views from config.views', async () => {
+        const fakeViewPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakeViewPath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(Object.keys(testObject.views).length).toBe(4);
+        expect(testObject.views['firstFakeView.ts']).toBeTruthy();
+        expect(testObject.views['firstFakeView.ts']).toBeInstanceOf(Function);
+        expect(testObject.views['secondFakeView.ts']).toBeTruthy();
+        expect(testObject.views['secondFakeView.ts']).toBeInstanceOf(Function);
+    });
+
+    test('Loading custom views does not remove the default "none" view', async () => {
+        const fakeViewPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakeViewPath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(testObject.views.none).toBeTruthy();
+        expect(testObject.views.none).toBeInstanceOf(Function);
+    });
+
+    test('Loading custom views does not remove the default "template" view created by the Page plugin', async () => {
+        const fakeViewPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakeViewPath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(testObject.views.template).toBeTruthy();
+        expect(testObject.views.template).toBeInstanceOf(Function);
+    });
+
+    test('Calls all generators', async () => {
+        const startingTree = new ContentTree('empty');
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => startingTree);
+        const testGenerator1 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => new ContentTree('gen1'))
+        };
+        const testGenerator2 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => new ContentTree('gen2'))
+        };
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.generators.push(testGenerator1, testGenerator2);
+
+        await testObject.build();
+
+        expect(vi.mocked(runGenerator)).toHaveBeenCalledTimes(2);
+        expect(vi.mocked(runGenerator)).toHaveBeenCalledWith(testObject, startingTree, testGenerator1);
+        expect(vi.mocked(runGenerator)).toHaveBeenCalledWith(testObject, startingTree, testGenerator2);
+    });
+
+    test('Calls loadTemplates()', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        
+        await testObject.build();
+
+        expect(loadTemplates).toHaveBeenCalledOnce();
+        expect(loadTemplates).toHaveBeenLastCalledWith(testObject);
+    });
+
+    test('Calls render()', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(vi.mocked(render)).toHaveBeenCalledOnce();
+    });
+
+    test('Passes this to render()', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(vi.mocked(render).mock.lastCall?.[0]).toBe(testObject);
+    });
+
+    test('If called with parameter, passes parameter to render()', async () => {
+        const expectedResult = 'altBuildDir';
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build(expectedResult);
+
+        expect(vi.mocked(render).mock.lastCall?.[1]).toBe(expectedResult);
+    });
+
+    test('If called without parameter, passes resolved value of config.output to constructor to render()', async () => {
+        const testConfig = { ...defaultConfig, output: 'configuredBuildDir' };
+        const expectedResult = path.resolve('testDir', testConfig.output);
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        expect(vi.mocked(render).mock.lastCall?.[1]).toBe(expectedResult);
+    });
+
+    test('Loads content tree from files  before passing tree to render()', async () => {
+        const testTree = getFakeTree('testTree');
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => testTree);
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.build();
+
+        const loadedTree = vi.mocked(render).mock.lastCall?.[2] as IContentTree;
+        expectEquivalentTrees(getFakeTree('', ['pages']), loadedTree, true, true);
+    }); 
+
+    test('Includes content loaded from generators in tree before passing tree to render()', async () => {
+        const startingTree = new ContentTree('start');
+        const gen1Tree = new ContentTree('gen1');
+        gen1Tree['dir'] = new ContentTree('dir');
+        gen1Tree['dir'].parent = gen1Tree;
+        gen1Tree['dir']['file.md'] = new FakePlugin('file.md', undefined, gen1Tree['dir']);
+        const gen2Tree = new ContentTree('gen2');
+        gen2Tree['top.jpg'] = new FakePlugin('top.jpg', undefined, gen2Tree);
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => startingTree);
+        vi.mocked(runGenerator).mockImplementation(async (env, tree, gendef: GeneratorDef) => await gendef.fn(tree));
+        const testGenerator1 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen1Tree)
+        };
+        const testGenerator2 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen2Tree)
+        };
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.generators.push(testGenerator1, testGenerator2);
+
+        await testObject.build();
+
+        const finalTree = vi.mocked(render).mock.lastCall?.[2] as IContentTree;
+        expect(finalTree['top.jpg']).toBeTruthy();
+        expect(finalTree['top.jpg']).toBeInstanceOf(FakePlugin);
+        expect((finalTree['top.jpg'] as ContentPlugin).__filename).toBe('top.jpg');
+        expect(finalTree['dir']).toBeTruthy();
+        expect(finalTree['dir']).toBeInstanceOf(ContentTree);
+        expect(finalTree['dir']['file.md']).toBeTruthy();
+        expect(finalTree['dir']['file.md']).toBeInstanceOf(FakePlugin);
+        expect((finalTree['dir']['file.md'] as ContentPlugin).__filename).toBe('file.md');
+    });
+
+    test('Merges content from files and content from generators before passing tree to render()', async () => {
+        const startingTree = new ContentTree('start');
+        startingTree['static.file'] = new FakePlugin('static.file', undefined, startingTree);
+        const gen1Tree = new ContentTree('gen1');
+        gen1Tree['dir'] = new ContentTree('dir');
+        gen1Tree['dir'].parent = gen1Tree;
+        gen1Tree['dir']['file.md'] = new FakePlugin('file.md', undefined, gen1Tree['dir']);
+        const gen2Tree = new ContentTree('gen2');
+        gen2Tree['top.jpg'] = new FakePlugin('top.jpg', undefined, gen2Tree);
+        vi.mocked(ContentTree.fromDirectory).mockImplementation(async () => startingTree);
+        vi.mocked(runGenerator).mockImplementation(async (env, tree, gendef: GeneratorDef) => await gendef.fn(tree));
+        const testGenerator1 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen1Tree)
+        };
+        const testGenerator2 = {
+            name: 'test1',
+            group: 'mocks',
+            fn: vi.fn(async () => gen2Tree)
+        };
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        testObject.generators.push(testGenerator1, testGenerator2);
+
+        await testObject.build();
+
+        const finalTree = vi.mocked(render).mock.lastCall?.[2] as IContentTree;
+        expect(finalTree['top.jpg']).toBeTruthy();
+        expect(finalTree['top.jpg']).toBeInstanceOf(FakePlugin);
+        expect((finalTree['top.jpg'] as ContentPlugin).__filename).toBe('top.jpg');
+        expect(finalTree['dir']).toBeTruthy();
+        expect(finalTree['dir']).toBeInstanceOf(ContentTree);
+        expect(finalTree['dir']['file.md']).toBeTruthy();
+        expect(finalTree['dir']['file.md']).toBeInstanceOf(FakePlugin);
+        expect((finalTree['dir']['file.md'] as ContentPlugin).__filename).toBe('file.md');
+        expect(finalTree['static.file']).toBeTruthy();
+        expect(finalTree['static.file']).toBeInstanceOf(FakePlugin);
+        expect((finalTree['static.file'] as ContentPlugin).__filename).toBe('static.file');
+    });
+
+    test('Passes templates to render()', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const expectedOutput = {};
+        vi.mocked(loadTemplates).mockImplementation(async () => expectedOutput);
+        
+        await testObject.build();
+
+        expect(vi.mocked(render).mock.lastCall?.[3]).toBe(expectedOutput);
+    });
+
+    test('Passes locals to render()', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const expectedOutput = { someLocalProperty: 'yes' };
+        testObject.locals = expectedOutput;
+
+        await testObject.build();
+
+        expect(vi.mocked(render).mock.lastCall?.[4]).toStrictEqual(expectedOutput);
+    });
 });

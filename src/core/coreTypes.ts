@@ -28,10 +28,10 @@ export interface IConfig {
 
 // Command-line options usable by multiple command verbs.
 export interface CommonOptions extends ParsedArgs {
-    chdir: string;
-    config: string;
-    port: number;
-    require: string;
+    chdir?: string;
+    config?: string;
+    port?: number;
+    require?: string;
 }
 
 // Type which can map a URL path to a content plugin.  Used by the server to choose what content to serve for each request.
@@ -41,7 +41,8 @@ export type ContentMap = {
 
 // A non-leaf node in the content tree.
 export interface IContentTree {
-    [index: string]: IContentTree | ContentPlugin | ContentTreeGroups | string[];
+    [index: string]: IContentTree | ContentPlugin | ContentTreeGroups | string[] | string;
+    filename?: string;
     parent?: IContentTree;
     _?: ContentTreeGroups;
     __groupnames?: string[];

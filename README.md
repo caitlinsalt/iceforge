@@ -6,6 +6,10 @@ For more information, read the full documentation.
 
 Iceforge is inspired by and derived from [Wintersmith](https://wintersmith.io) by Johan Nordberg, and the version 1 release is intended to be compatible with Wintersmith as far as is practicable.  For more information, read the History section below.
 
+## Latest updates
+
+See the [NEWS.md](./NEWS.md) file for latest changes in this version.
+
 ## Installation
 
 Iceforge requires a working Node.js and NPM installation.  Refer to their websites to read [how to install Node.js](https://nodejs.org/en/download/package-manager) and [how to install NPM](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm).

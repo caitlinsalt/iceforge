@@ -1,3 +1,5 @@
+import * as path from 'node:path';
+
 import * as utils from './utils.js';
 import { IContentTree, FilePath, GeneratorDef, IEnvironment, ViewFunc } from './coreTypes.js';
 
@@ -21,6 +23,8 @@ export default class ContentPlugin {
 
     // Parent node in the content tree.
     parent: IContentTree | null;
+
+    private static dirSepRegex = path.sep !== '/' ? new RegExp(path.sep.replace('\\', '\\\\'), 'g') : null;
 
     // Constructor provided to ensure that inheritors can declare a different constructor signature without upsetting Typescript.
     // eslint-disable-next-line
@@ -52,19 +56,19 @@ export default class ContentPlugin {
     // This function converts the plugin's filename property into a relative URL, using the configuration base URL.
     getUrl(baseUrl?: string): string {
         let filename = this.filename;
-        let base = baseUrl || this.__env?.config.baseUrl;
+        let base = baseUrl || this.__env?.config.baseUrl || '';
         if (!base.match(/\/$/)) {
             base += '/';
         }
-        if (process.platform === 'win32') {
-            filename = filename.replace(/\\/g, '/');
+        if (path.sep !== '/') {
+            filename = filename.replace(ContentPlugin.dirSepRegex, '/');
         }
         return utils.urlResolve(base, filename);
     }
 
     // Utility getter which calls getUrl() with its default parameter taken from the config file.
     get url() {
-        return this.getUrl(this.__env.config.baseUrl);
+        return this.getUrl(this.__env?.config.baseUrl);
     }
 
     // The Chalk colour used to identify this plugin when printing the content tree.

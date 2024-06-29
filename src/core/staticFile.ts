@@ -23,7 +23,8 @@ export default class StaticFile extends ContentPlugin {
             try {
                 return fs.createReadStream(this.filepath.full);
             } catch (error) {
-                throw new Error(`Error creating file read stream: ${error.message}`);
+                error.message = `Error creating file read stream from ${this.filepath.full}: ${error?.message}`;
+                throw error;
             }
         };
     }
