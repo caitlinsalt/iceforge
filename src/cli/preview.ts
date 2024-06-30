@@ -1,6 +1,6 @@
 import { defaultConfig } from '../core/config.js';
 import { CommonOptions } from '../core/coreTypes.js';
-import { logger } from '../core/logger.js';
+import logger from '../core/logger.js';
 import { commonOptions, commonUsage, extendOptions, loadEnv } from './common.js';
 
 // Module implementing the preview server.

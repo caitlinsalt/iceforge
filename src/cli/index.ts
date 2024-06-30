@@ -3,7 +3,7 @@ import parseArgv from 'minimist';
 
 import version from './version.js';
 import { extendOptions } from './common.js';
-import { logger } from '../core/logger.js';
+import logger from '../core/logger.js';
 
 const usage = `
 Usage: iceforge [options] [command]

@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { DateTime } from 'luxon';
 
-// Remove the file extension from a path.
+// Remove the file type extension from a file name.
 export const stripExtension = (filename: string): string => filename.replace(/(.+)\.[^.]+$/, '$1');
 
 // Read a file and parse it as JSON.

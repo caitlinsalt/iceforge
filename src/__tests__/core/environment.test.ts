@@ -1,11 +1,9 @@
 import { describe, expect, test, vi } from 'vitest';
-import * as winston from 'winston';
 import * as url from 'node:url';
 import * as path from 'node:path';
 
 import Environment from '../../core/environment';
 import { defaultConfig } from '../../core/config';
-import { transports } from '../../core/logger';
 import StaticFile from '../../core/staticFile';
 import { FakePlugin } from './fakes/fakePlugin';
 import FakeTemplate from './fakes/fakeTemplate';
@@ -13,12 +11,13 @@ import { IContentTree } from '../../core/coreTypes';
 import ContentTree from '../../core/contentTree';
 import { JsonPage, MarkdownPage } from '../../plugins/markdown';
 import { Page } from '../../plugins/page';
+import { PugTemplate } from '../../plugins/pug';
+import { testLogger } from '../testUtils';
+import loadTemplates from '../../core/loadTemplates';
+import { run } from '../../core/server';
+import { createServer } from 'node:http';
 
-const testLogger = winston.createLogger({
-    exitOnError: true,
-    transports: transports,
-    silent: true
-});
+vi.mock('../../core/loadTemplates');
 
 describe('Constructor/factory() tests', () => {
     test('config property is set to first parameter', async () => {
@@ -739,7 +738,20 @@ describe('loadPlugins() tests', () => {
         expect(testObject.views.template).toBeInstanceOf(Function);
     });
 
-    test.todo('Loads PugTemplate plugin');
+    test('Loads PugTemplate plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadPlugins();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('pug.ts'))).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBe(PugTemplate);
+        const testCheck = testObject.templatePlugins.find(p => p.class === PugTemplate);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.pattern).toBe('**/*.*(pug|jade)');
+    });
+
     test.todo('Loads plugin listed in config object');
 });
 
@@ -756,16 +768,58 @@ describe('getContents() tests', () => {
 });
 
 describe('getLocals() tests', () => {
-    test.todo('Returns this.locals asynchronously');
+    test('Returns this.locals asynchronously', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const expectedOutput = { someLocalProperty: 'yes' };
+        testObject.locals = expectedOutput;
+
+        const testOutput = await testObject.getLocals();
+
+        expect(testOutput).toStrictEqual(expectedOutput);
+    });
 });
 
 describe('getTemplates() tests', () => {
-    test.todo('Calls loadTemplates()');
-    test.todo('Returns result of loadTemplates() call');
+    test('Calls loadTemplates()', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        
+        await testObject.getTemplates();
+
+        expect(loadTemplates).toHaveBeenCalledOnce();
+        expect(loadTemplates).toHaveBeenLastCalledWith(testObject);
+    });
+
+    test('Returns result of loadTemplates() call', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const expectedOutput = {};
+        vi.mocked(loadTemplates).mockImplementation(async () => expectedOutput);
+        
+        const testOutput = await testObject.getTemplates();
+
+        expect(testOutput).toBe(expectedOutput);
+    });
 });
 
 describe('load() tests', () => {
-    test.todo('Loads MarkdownPage plugin');
+    test.todo('Loads MarkdownPage plugin', async () => {
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.load();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('markdown.ts'))).toBeTruthy();
+        expect(testObject.plugins.MarkdownPage).toBeTruthy();
+        expect(testObject.plugins.MarkdownPage).toBe(MarkdownPage);
+        const testCheck = testObject.contentPlugins.find(p => p.class === MarkdownPage);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('MarkdownPage');
+        expect(testCheck?.group).toBe('pages');
+        expect(testCheck?.pattern).toBe('**/*.*(markdown|mkd|md)');
+    });
+
     test.todo('Loads JsonPage plugin');
     test.todo('Loads Page plugin');
     test.todo('Loads PugTemplate plugin');
@@ -782,8 +836,26 @@ describe('load() tests', () => {
 });
 
 describe('preview() tests', () => {
-    test.todo('Sets mode to preview');
-    test.todo('Calls server.run()');
+    test('Sets mode to preview', async () => {
+        vi.doMock('../../core/server');
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.preview();
+
+        expect(testObject.mode).toBe('preview');
+    });
+
+    test.todo('Calls server.run()', async () => {
+        vi.doMock('./server.js', () => ({ run: () => Promise.resolve(createServer()) }));
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.preview();
+
+        expect(run).toHaveBeenCalledOnce();
+        expect(run).toHaveBeenLastCalledWith(testObject);
+    });
 });
 
 describe('build() tests', () => {

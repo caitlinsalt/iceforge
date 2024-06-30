@@ -1,7 +1,7 @@
 import { Opts } from 'minimist';
 import path from 'node:path';
 import { CommonOptions, IEnvironment, Indexable } from '../core/coreTypes.js';
-import { logger } from '../core/logger.js';
+import logger from '../core/logger.js';
 import { fileExists } from '../core/utils.js';
 import Config, { defaultConfig } from '../core/config.js';
 import Environment from '../core/environment.js';

@@ -1,12 +1,16 @@
 import ContentPlugin from '../../../core/contentPlugin';
+import { ViewFunc } from '../../../core/coreTypes';
 
 export class FakePlugin extends ContentPlugin {
     
     originalFilename: string;
+
+    __view: string | ViewFunc;
     
-    constructor(filename: string) {
+    constructor(filename: string, view?: string | ViewFunc) {
         super();
         this.originalFilename = filename;
+        this.__view = view ?? 'FakeView';
     }
 
     get name() {
@@ -14,7 +18,7 @@ export class FakePlugin extends ContentPlugin {
     }
 
     get view() {
-        return 'FakeView';
+        return this.__view;
     }
 
     get filename() {

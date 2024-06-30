@@ -17,10 +17,10 @@ import {
     ViewMap 
 } from './coreTypes.js';
 import ContentTree from './contentTree.js';
-import { loadTemplates } from './loadTemplates.js';
+import loadTemplates from './loadTemplates.js';
 import { readJson } from './utils.js';
 import runGenerator from './generator.js';
-import { logger } from './logger.js';
+import logger from './logger.js';
 import Config from './config.js';
 import render from './render.js';
 import TemplatePlugin, { TemplatePluginDef } from './templatePlugin.js';

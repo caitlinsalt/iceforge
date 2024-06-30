@@ -3,7 +3,7 @@ import chalk from 'chalk';
 
 import { commonOptions, commonUsage, extendOptions, loadEnv } from './common.js';
 
-import { logger } from '../core/logger.js';
+import logger from '../core/logger.js';
 import { CommonOptions, IEnvironment } from '../core/coreTypes.js';
 import { fileExists } from '../core/utils.js';
 

@@ -5,7 +5,7 @@ import { fileExists } from '../core/utils.js';
 import * as fs from 'fs/promises';
 import { ParsedArgs } from 'minimist';
 import * as fse from 'fs-extra';
-import { logger } from '../core/logger.js';
+import logger from '../core/logger.js';
 import { spawn } from 'node:child_process';
 import { getStoragePath } from './common.js';
 

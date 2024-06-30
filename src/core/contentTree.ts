@@ -7,7 +7,7 @@ import { minimatch } from 'minimatch';
 import { IContentTree, ContentTreeGroups, FilePath, IEnvironment, Indexable, ContentTreeNode } from './coreTypes.js';
 import { minimatchOptions } from './config.js';
 import ContentPlugin from './contentPlugin.js';
-import { logger } from './logger.js';
+import logger from './logger.js';
 import { defaultPluginDef } from './staticFile.js';
 
 type indexableChalk = {

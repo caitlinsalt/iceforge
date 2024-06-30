@@ -14,7 +14,7 @@ import { ContentMap, IContentTree, IConfig, TemplateMap, LocalMap } from './core
 import Environment from './environment.js';
 import runGenerator from './generator.js';
 import { renderView } from './render.js';
-import { logger } from './logger.js';
+import logger from './logger.js';
 
 // Utility function to map HTTP return codes to colours.
 const colourCode = (code: number): string => {
