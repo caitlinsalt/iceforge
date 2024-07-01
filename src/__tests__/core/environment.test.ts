@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import * as url from 'node:url';
 import * as path from 'node:path';
+import { createServer } from 'node:http';
 
 import Environment from '../../core/environment';
 import { defaultConfig } from '../../core/config';
@@ -14,10 +15,9 @@ import { Page } from '../../plugins/page';
 import { PugTemplate } from '../../plugins/pug';
 import { testLogger } from '../testUtils';
 import loadTemplates from '../../core/loadTemplates';
-import { run } from '../../core/server';
-import { createServer } from 'node:http';
 
 vi.mock('../../core/loadTemplates');
+vi.mock('../../core/server');
 
 describe('Constructor/factory() tests', () => {
     test('config property is set to first parameter', async () => {
@@ -648,6 +648,7 @@ describe('loadPluginModule() tests', () => {
         await testObject.loadPluginModule(fakePath);
 
         expect(mockDefault).toHaveBeenCalled();
+        vi.doUnmock(fakePath);
     });
 
     test('When called with a module, calls the module\'s default export', async () => {
@@ -664,6 +665,7 @@ describe('loadPluginModule() tests', () => {
         await testObject.loadPluginModule(fakeModule);
 
         expect(mockDefault).toHaveBeenCalled();
+        vi.doUnmock(fakePath);
     });
 });
 
@@ -752,12 +754,56 @@ describe('loadPlugins() tests', () => {
         expect(testCheck?.pattern).toBe('**/*.*(pug|jade)');
     });
 
-    test.todo('Loads plugin listed in config object');
+    test('Loads plugin listed in config object', async () => {
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakePlugin.ts');
+        const testConfig = { ...defaultConfig, plugins: [ fakePath ] };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadPlugins();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('fakePlugin.ts'))).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBe(FakePlugin);
+        const testCheck = testObject.contentPlugins.find(p => p.class === FakePlugin);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('FakePlugin');
+        expect(testCheck?.group).toBe('fakePages');
+        expect(testCheck?.pattern).toBe('**/*.fake');
+    });
 });
 
 describe('loadViews() tests', () => {
-    test.todo('Succeeds if config.views is empty');
-    test.todo('Loads views from config.views');
+    test('Succeeds if config.views is empty', async () => {
+        const testConfig = { ...defaultConfig, views: '' };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadViews();
+    });
+
+    test('Loads views from config.views', async () => {
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakePath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadViews();
+
+        expect(Object.keys(testObject.views).length).toBe(3);
+        expect(testObject.views['firstFakeView.ts']).toBeTruthy();
+        expect(testObject.views['firstFakeView.ts']).toBeInstanceOf(Function);
+        expect(testObject.views['secondFakeView.ts']).toBeTruthy();
+        expect(testObject.views['secondFakeView.ts']).toBeInstanceOf(Function);
+    });
+
+    test('Loading custom views does not remove the default "none" view', async () => {
+        const fakePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const testConfig = { ...defaultConfig, views: fakePath };
+        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+
+        await testObject.loadViews();
+
+        expect(testObject.views.none).toBeTruthy();
+        expect(testObject.views.none).toBeInstanceOf(Function);
+    });
 });
 
 describe('getContents() tests', () => {
@@ -804,9 +850,10 @@ describe('getTemplates() tests', () => {
 });
 
 describe('load() tests', () => {
-    test.todo('Loads MarkdownPage plugin', async () => {
+    test('Loads MarkdownPage plugin', async () => {
+        const fakeSitePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes');
         const testConfig = { ...defaultConfig };
-        const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
+        const testObject = await Environment.factory(testConfig, fakeSitePath, testLogger);
 
         await testObject.load();
 
@@ -820,12 +867,115 @@ describe('load() tests', () => {
         expect(testCheck?.pattern).toBe('**/*.*(markdown|mkd|md)');
     });
 
-    test.todo('Loads JsonPage plugin');
-    test.todo('Loads Page plugin');
-    test.todo('Loads PugTemplate plugin');
-    test.todo('Loads plugin listed in config object');
-    test.todo('Succeeds if config.views is empty');
-    test.todo('Loads views from config.views');
+    test('Loads JsonPage plugin', async () => {
+        const fakeSitePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes');
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, fakeSitePath, testLogger);
+
+        await testObject.load();
+
+        expect(testObject.plugins.JsonPage).toBeTruthy();
+        expect(testObject.plugins.JsonPage).toBe(JsonPage);
+        const testCheck = testObject.contentPlugins.find(p => p.class === JsonPage);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('JsonPage');
+        expect(testCheck?.group).toBe('pages');
+        expect(testCheck?.pattern).toBe('**/*.json');
+    });
+
+    test('Loads Page plugin', async () => {
+        const fakeSitePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes');
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, fakeSitePath, testLogger);
+
+        await testObject.load();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('page.ts'))).toBeTruthy();
+        expect(testObject.plugins.Page).toBeTruthy();
+        expect(testObject.plugins.Page).toBe(Page);
+        expect(testObject.views.template).toBeInstanceOf(Function);
+    });
+
+    test('Loads PugTemplate plugin', async () => {
+        const fakeSitePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes');
+        const testConfig = { ...defaultConfig };
+        const testObject = await Environment.factory(testConfig, fakeSitePath, testLogger);
+
+        await testObject.load();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('pug.ts'))).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBeTruthy();
+        expect(testObject.plugins.PugTemplate).toBe(PugTemplate);
+        const testCheck = testObject.templatePlugins.find(p => p.class === PugTemplate);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.pattern).toBe('**/*.*(pug|jade)');
+    });
+
+    test('Loads plugin listed in config object', async () => {
+        const fakePluginPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/fakePlugin.ts');
+        const fakeSitePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes');
+        const testConfig = { ...defaultConfig, plugins: [ fakePluginPath ] };
+        const testObject = await Environment.factory(testConfig, fakeSitePath, testLogger);
+
+        await testObject.load();
+
+        expect(testObject.loadedModules.find(x => x.endsWith('fakePlugin.ts'))).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBeTruthy();
+        expect(testObject.plugins.FakePlugin).toBe(FakePlugin);
+        const testCheck = testObject.contentPlugins.find(p => p.class === FakePlugin);
+        expect(testCheck).toBeTruthy();
+        expect(testCheck?.name).toBe('FakePlugin');
+        expect(testCheck?.group).toBe('fakePages');
+        expect(testCheck?.pattern).toBe('**/*.fake');
+    });
+
+    test('Succeeds if config.views is empty', async () => {
+        const fakeSitePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes');
+        const testConfig = { ...defaultConfig, views: '' };
+        const testObject = await Environment.factory(testConfig, fakeSitePath, testLogger);
+
+        await testObject.load();
+    });
+
+    test('Loads views from config.views', async () => {
+        const fakeViewPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const fakeSitePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes');
+        const testConfig = { ...defaultConfig, views: fakeViewPath };
+        const testObject = await Environment.factory(testConfig, fakeSitePath, testLogger);
+
+        await testObject.load();
+
+        expect(Object.keys(testObject.views).length).toBe(4);
+        expect(testObject.views['firstFakeView.ts']).toBeTruthy();
+        expect(testObject.views['firstFakeView.ts']).toBeInstanceOf(Function);
+        expect(testObject.views['secondFakeView.ts']).toBeTruthy();
+        expect(testObject.views['secondFakeView.ts']).toBeInstanceOf(Function);
+    });
+
+    test('Loading custom views does not remove the default "none" view', async () => {
+        const fakeViewPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const fakeSitePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes');
+        const testConfig = { ...defaultConfig, views: fakeViewPath };
+        const testObject = await Environment.factory(testConfig, fakeSitePath, testLogger);
+
+        await testObject.load();
+
+        expect(testObject.views.none).toBeTruthy();
+        expect(testObject.views.none).toBeInstanceOf(Function);
+    });
+
+    test('Loading custom views does not remove the default "template" view created by the Page plugin', async () => {
+        const fakeViewPath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes/views');
+        const fakeSitePath = path.resolve(url.fileURLToPath(import.meta.url), '../fakes');
+        const testConfig = { ...defaultConfig, views: fakeViewPath };
+        const testObject = await Environment.factory(testConfig, fakeSitePath, testLogger);
+
+        await testObject.load();
+
+        expect(testObject.views.template).toBeTruthy();
+        expect(testObject.views.template).toBeInstanceOf(Function);
+    });
+
     test.todo('Loads content tree from files'); 
     test.todo('Calls all generators');
     test.todo('Includes content loaded from generators in tree');
@@ -837,7 +987,14 @@ describe('load() tests', () => {
 
 describe('preview() tests', () => {
     test('Sets mode to preview', async () => {
-        vi.doMock('../../core/server');
+        const mockRun = vi.fn(() => Promise.resolve(createServer()));
+        vi.doMock('../../core/server', async (orig) => {
+            const serverModule = await orig<typeof import('../../core/server')>();
+            return {
+                ...serverModule,
+                run: mockRun
+            };
+        });
         const testConfig = { ...defaultConfig };
         const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
 
@@ -846,15 +1003,22 @@ describe('preview() tests', () => {
         expect(testObject.mode).toBe('preview');
     });
 
-    test.todo('Calls server.run()', async () => {
-        vi.doMock('./server.js', () => ({ run: () => Promise.resolve(createServer()) }));
+    test('Calls server.run()', async () => {
+        const mockRun = vi.fn(() => Promise.resolve(createServer()));
+        vi.doMock('../../core/server', async (orig) => {
+            const serverModule = await orig<typeof import('../../core/server')>();
+            return {
+                ...serverModule,
+                run: mockRun
+            };
+        });
         const testConfig = { ...defaultConfig };
         const testObject = await Environment.factory(testConfig, 'testDir', testLogger);
 
         await testObject.preview();
 
-        expect(run).toHaveBeenCalledOnce();
-        expect(run).toHaveBeenLastCalledWith(testObject);
+        expect(mockRun).toHaveBeenCalledOnce();
+        expect(mockRun).toHaveBeenLastCalledWith(testObject);
     });
 });
 

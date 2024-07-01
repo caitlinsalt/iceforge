@@ -340,7 +340,7 @@ export default class Environment extends EventEmitter implements IEnvironment {
         }
         const filenames = await fs.readdir(this.resolvePath(this.config.views));
         const modules = filenames.map(f => `${this.config.views}/${f}`);
-        for (const module in modules) {
+        for (const module of modules) {
             await this.loadViewModule(module);
         }
     }

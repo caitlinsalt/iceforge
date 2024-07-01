@@ -1,5 +1,5 @@
 import ContentPlugin from '../../../core/contentPlugin';
-import { ViewFunc } from '../../../core/coreTypes';
+import { IEnvironment, ViewFunc } from '../../../core/coreTypes';
 
 export class FakePlugin extends ContentPlugin {
     
@@ -30,6 +30,8 @@ export class FakePlugin extends ContentPlugin {
     }
 }
 
-const registrationFunction = async () => true;
+const registrationFunction = async (env: IEnvironment): Promise<void> => {
+    env.registerContentPlugin('fakePages', '**/*.fake', FakePlugin);
+};
 
 export default registrationFunction;
