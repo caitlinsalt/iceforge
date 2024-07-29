@@ -508,7 +508,7 @@ describe('Page tests', () => {
                 // This test is really only meaningful when run on Windows; on other platforms filename will
                 // already have been normalised before getUrl() accesses it.
                 test('...only uses / as a path separator', () => {
-                    const testFilepath = { full: 'C:\\www\\content\\file.page', relative: 'content\\file.page' };
+                    const testFilepath = { full: 'C:\\www\\content\\file.page', relative: `content${path.sep}file.page` };
                     const testMetadata = { filename: ':basename' };
                     const testObject = new Page(testFilepath, testMetadata);
 
@@ -542,7 +542,7 @@ describe('Page tests', () => {
                 // This test is really only meaningful when run on Windows; on other platforms filename will
                 // already have been normalised before getUrl() accesses it.
                 test('...only uses / as a path separator', () => {
-                    const testFilepath = { full: 'C:\\www\\content\\file.page', relative: 'content\\file.page' };
+                    const testFilepath = { full: 'C:\\www\\content\\file.page', relative: `content${path.sep}file.page` };
                     const testMetadata = { filename: ':basename' };
                     const testObject = new Page(testFilepath, testMetadata);
 
@@ -616,7 +616,7 @@ describe('Page tests', () => {
                 });
 
                 test('...only uses / as a path separator', () => {
-                    const testFilepath = { full: 'C:\\www\\content\\file.page', relative: 'content\\file.page' };
+                    const testFilepath = { full: 'C:\\www\\content\\file.page', relative: `content${path.sep}file.page` };
                     const testMetadata = { filename: ':basename' };
                     const fakeEnvironment = new FakeEnvironment({ baseUrl: '/testBase/'});
                     const testObject = new Page(testFilepath, testMetadata);
@@ -690,7 +690,7 @@ describe('Page tests', () => {
                 });
 
                 test('...only uses / as a path separator', () => {
-                    const testFilepath = { full: 'C:\\www\\content\\file.page', relative: 'content\\file.page' };
+                    const testFilepath = { full: 'C:\\www\\content\\file.page', relative: `content${path.sep}file.page` };
                     const testMetadata = { filename: ':basename' };
                     const fakeEnvironment = new FakeEnvironment({ baseUrl: '/testBase' });
                     const testObject = new Page(testFilepath, testMetadata);
@@ -760,7 +760,7 @@ describe('Page tests', () => {
             });
 
             test('...only uses / as a path separator', () => {
-                const testFilepath = { full: '\\www\\content\\file.page', relative: 'content\\file.page' };
+                const testFilepath = { full: '\\www\\content\\file.page', relative: `content${path.sep}file.page` };
                 const testMetadata = { filename: ':basename' };
                 const testBaseUrl = '/testBase/';
                 const testObject = new Page(testFilepath, testMetadata);
