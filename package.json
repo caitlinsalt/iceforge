@@ -15,6 +15,7 @@
   ],
   "scripts": {
     "dev": "tsc --watch",
+    "build": "tsc",
     "prepack": "tsc",
     "lint": "eslint --ext .js,.ts --ignore-path .eslintignore",
     "test": "vitest"
