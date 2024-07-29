@@ -30,11 +30,11 @@
   },
   "homepage": "https://github.com/caitlinsalt/iceforge#readme",
   "devDependencies": {
-    "@types/node": "^20.14.10",
+    "@types/node": "^20.14.13",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.57.0",
-    "typescript": "^5.5.3",
+    "typescript": "^5.5.4",
     "vitest": "^1.6.0"
   },
   "dependencies": {
