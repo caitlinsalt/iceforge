@@ -1,6 +1,6 @@
 {
   "name": "iceforge",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "A static site generator forked from Wintersmith",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
