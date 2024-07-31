@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { DateTime } from 'luxon';
 
-// Remove the file extension from a path.
+// Remove the file type extension from a file name.
 export const stripExtension = (filename: string): string => filename.replace(/(.+)\.[^.]+$/, '$1');
 
 // Read a file and parse it as JSON.
@@ -62,8 +62,8 @@ export const rfc2822 = (date: Date): string => {
 export const rfc822 = rfc2822;
 
 // Resolve a URL
-export const urlResolve = (from: string, to: string): string => {
-    const resolvedUrl = new URL(to, new URL(from, 'resolve://'));
+export const urlResolve = (base: string, url: string): string => {
+    const resolvedUrl = new URL(url, new URL(base, 'resolve://'));
     if (resolvedUrl.protocol === 'resolve:') {
         // `from` is a relative URL.
         const { pathname, search, hash } = resolvedUrl;

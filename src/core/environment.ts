@@ -1,7 +1,6 @@
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import { Logger } from 'winston';
 
@@ -17,15 +16,16 @@ import {
     ViewMap 
 } from './coreTypes.js';
 import ContentTree from './contentTree.js';
-import { loadTemplates } from './loadTemplates.js';
+import loadTemplates from './loadTemplates.js';
 import { readJson } from './utils.js';
 import runGenerator from './generator.js';
-import { logger } from './logger.js';
+import logger from './logger.js';
 import Config from './config.js';
 import render from './render.js';
 import TemplatePlugin, { TemplatePluginDef } from './templatePlugin.js';
 import ContentPlugin, { ContentPluginDef } from './contentPlugin.js';
 import StaticFile from './staticFile.js';
+import EventEmitter from 'node:events';
 
 // The class that represents the Iceforge build-time environment.  Its properties are exposed to
 // plugins and templates at both registration time and site build time.
@@ -130,7 +130,7 @@ export default class Environment extends EventEmitter implements IEnvironment {
             this.logger.verbose(`Loading locals from ${filename}`);
             this.locals = await readJson(filename);
         } else {
-            this.locals = this.config.locals;
+            this.locals = { ...this.config.locals };
         }
 
         const importables = { ...this.config.require, ...this.config.imports };
@@ -313,7 +313,16 @@ export default class Environment extends EventEmitter implements IEnvironment {
         const require = createRequire(import.meta.url);
         for (const plugin of Environment.defaultPlugins) {
             this.logger.verbose(`Loading default plugin ${plugin}`);
-            const id = pathToFileURL(require.resolve(`./../plugins/${plugin}`)).toString();
+            let id;
+
+            // This is a slight hack to work around there being two different use cases: loading the compiled JavaScript code 
+            // at normal runtime, and loading the uncompiled TypeScript code during testing.
+            try {
+                id = pathToFileURL(require.resolve(`./../plugins/${plugin}`)).toString();
+            } catch {
+                id = pathToFileURL(require.resolve(`./../plugins/${plugin}.ts`)).toString();
+            }
+
             const module = await import(id);
             this.loadedModules.push(id);
             await this.loadPluginModule(module);
@@ -331,7 +340,7 @@ export default class Environment extends EventEmitter implements IEnvironment {
         }
         const filenames = await fs.readdir(this.resolvePath(this.config.views));
         const modules = filenames.map(f => `${this.config.views}/${f}`);
-        for (const module in modules) {
+        for (const module of modules) {
             await this.loadViewModule(module);
         }
     }

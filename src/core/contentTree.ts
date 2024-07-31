@@ -7,7 +7,7 @@ import { minimatch } from 'minimatch';
 import { IContentTree, ContentTreeGroups, FilePath, IEnvironment, Indexable, ContentTreeNode } from './coreTypes.js';
 import { minimatchOptions } from './config.js';
 import ContentPlugin from './contentPlugin.js';
-import { logger } from './logger.js';
+import logger from './logger.js';
 import { defaultPluginDef } from './staticFile.js';
 
 type indexableChalk = {
@@ -20,7 +20,7 @@ type indexableChalk = {
 // non-enumerable.
 export default class ContentTree implements IContentTree {
 
-    [index: string]: IContentTree | ContentPlugin | ContentTreeGroups | string[];
+    [index: string]: IContentTree | ContentPlugin | ContentTreeGroups | string[] | string;
 
     // filename may be either a directory name, or the property name of this node in the parent node.
     constructor(filename: string, groupnames: string[] = []) {
@@ -212,6 +212,9 @@ export default class ContentTree implements IContentTree {
     // Merge two content trees recursively from their roots, mutating the first.
     // This routine throws an error if it encounters a non-leaf node that is not a ContentTree instance.
     static merge(root: IContentTree, tree: IContentTree): void {
+        if (!tree) {
+            return;
+        }
         for (const k of Object.keys(tree)) {
             if ((tree[k] as ContentTreeNode).isLeaf) {
                 const item = tree[k] as ContentPlugin;

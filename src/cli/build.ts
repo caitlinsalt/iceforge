@@ -3,7 +3,7 @@ import chalk from 'chalk';
 
 import { commonOptions, commonUsage, extendOptions, loadEnv } from './common.js';
 
-import { logger } from '../core/logger.js';
+import logger from '../core/logger.js';
 import { CommonOptions, IEnvironment } from '../core/coreTypes.js';
 import { fileExists } from '../core/utils.js';
 
@@ -74,7 +74,6 @@ const build = async (options: BuildOpts) : Promise<void> => {
     const stop = Date.now();
     const delta = stop.valueOf() - start.valueOf();
     logger.info(`Done in ${chalk.bold(delta)}ms\n`);
-    process.exit(0);
 };
 
 export default build;

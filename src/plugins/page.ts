@@ -58,8 +58,8 @@ export class Page extends ContentPlugin {
             const ctx = vm.createContext({env: this.__env, page: this});
             return vm.runInContext(code, ctx);
         });
-        if (filename.startsWith('/')) {
-            return filename.slice(1);
+        if (filename.startsWith('/') || filename.startsWith(path.sep)) {
+            return filename.slice(path.sep.length);
         }
         return path.join(dirname, filename);
     }
@@ -136,7 +136,7 @@ export class Page extends ContentPlugin {
 }
 
 // The default view function for pages.  Looks up the template named in the page metadata and calls its render() method.
-const templateView = async (env: IEnvironment, locals: LocalMap, contentTree: IContentTree, templates: TemplateMap, content: ContentPlugin): Promise<RenderedData> => {
+export const templateView = async (env: IEnvironment, locals: LocalMap, contentTree: IContentTree, templates: TemplateMap, content: ContentPlugin): Promise<RenderedData> => {
 
     const page = content as Page;
     if (page.template === 'none') {

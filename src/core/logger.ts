@@ -56,7 +56,9 @@ export const transports = [
     }),
 ];
 
-export const logger = winston.createLogger({
+const logger = winston.createLogger({
     exitOnError: true,
     transports: transports,
 });
+
+export default logger;
