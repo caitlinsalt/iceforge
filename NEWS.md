@@ -2,6 +2,8 @@
 
 ## Release 1.0.6
 
+Released 2024-07-31
+
 - [Issue 48](https://github.com/caitlinsalt/iceforge/issues/48) fixed.  The --require command line option was not being processed.
 - Previous versions of Iceforge did not include an --imports command line option to specify the contents of the configuration file imports block on the command line.  Instead, the --require option had to be used.  This version supports both --imports and --require.
 - In previous versions of Iceforge, the function `ContentTree.merge()` crashed out if the second parameter was `null` or `undefined`.  Although Typescript would warn if this situation was coded directly, it was possible to encounter the bug when, for example, writing a JavaScript generator plugin that returned `null` to indicate an empty tree, which the definition of the `GeneratorDef` type implied was permitted.  Now, `ContentTree.merge()` will return without modifying the first parameter if the second parameter is a falsy value.
@@ -15,7 +17,7 @@
 
 ## Release 1.0.5
 
-Release 2024-06-25
+Released 2024-06-25
 
 - [Issue 46](https://github.com/caitlinsalt/iceforge/issues/46) fixed.  In Page.filename(), the wrong value was being substituted for the `:day` placeholder in filename templates.
 
