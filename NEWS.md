@@ -1,5 +1,9 @@
 # Iceforge updates
 
+## Release 1.1.0
+
+- A major-level dependency update has been applied to Vitest (to v2.0.4)
+
 ## Release 1.0.6
 
 Released 2024-07-31

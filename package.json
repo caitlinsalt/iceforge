@@ -1,6 +1,6 @@
 {
   "name": "iceforge",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "A static site generator forked from Wintersmith",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -39,7 +39,7 @@
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.57.0",
     "typescript": "^5.5.4",
-    "vitest": "^1.6.0"
+    "vitest": "^2.0.4"
   },
   "dependencies": {
     "@types/fs-extra": "^11.0.4",
