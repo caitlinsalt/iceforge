@@ -63,7 +63,7 @@
     "marked-mangle": "^1.1.8",
     "marked-smartypants": "^1.1.7",
     "mime": "^3.0.0",
-    "minimatch": "^9.0.5",
+    "minimatch": "^10.0.1",
     "minimist": "^1.2.8",
     "pug": "^3.0.3",
     "server-destroy": "^1.0.1",
