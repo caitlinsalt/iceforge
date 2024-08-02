@@ -21,6 +21,7 @@ describe('Config constructor tests', () => {
         expect(testOutput.hostname).toBe(null);
         expect(testOutput.port).toBe(8080);
         expect(testOutput.restartOnConfigChange).toBe(true);
+        expect(testOutput.parallelRender).toBe(true);
     });
 
     test('Constructor with parameter overrides defaults with values from parameter', () => {

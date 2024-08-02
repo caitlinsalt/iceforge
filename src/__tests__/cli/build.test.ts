@@ -20,6 +20,7 @@ afterEach(() => {
 const getTestOptions = () => ({
     clean: false,
     output: '',
+    parallelRender: true,
     chdir: '',
     config: '',
     port: 0,

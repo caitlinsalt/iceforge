@@ -33,17 +33,21 @@ Examples:
 `;
 
 export const options = {
-    boolean: ['clean'],
+    boolean: ['clean', 'parallelRender'],
     string: ['output'],
     alias: {
         output: 'o',
         clean: 'X'
+    },
+    defaults: {
+        parallelRender: true
     }
 };
 
 interface BuildOpts extends CommonOptions {
     clean: boolean;
     output: string;
+    parallelRender: boolean;
 }
 
 extendOptions(options, commonOptions);
