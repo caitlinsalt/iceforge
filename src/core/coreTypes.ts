@@ -21,6 +21,7 @@ export interface IConfig {
     hostname: string;
     port: number;
     restartOnConfigChange: boolean;
+    parallelRender: boolean;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [index: string]: any;

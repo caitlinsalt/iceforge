@@ -62,6 +62,9 @@ export default class Config implements IConfig {
     // Restart preview server on config change.
     restartOnConfigChange: boolean;
 
+    // In build mode, render pages in parallel.
+    parallelRender: boolean;
+
     // File that this configuration object was loaded from.
     filename: string;
 
@@ -103,4 +106,5 @@ export const defaultConfig: IConfig = {
     hostname: null,
     port: 8080,
     restartOnConfigChange: true,
+    parallelRender: true,
 };

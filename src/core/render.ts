@@ -51,7 +51,11 @@ export default async function render(env: IEnvironment, outputDir: string, conte
     };
 
     const items = ContentTree.flatten(contentTree);
-    for (const item of items) {
-        await renderPlugin(item);
+    if (env.config.parallelRender) {
+        await Promise.all(items.map(async (item) => await renderPlugin(item)));
+    } else {
+        for (const item of items) {
+            await renderPlugin(item);
+        }
     }
 }
