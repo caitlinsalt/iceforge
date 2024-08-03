@@ -34,8 +34,8 @@ Usage: iceforce new [options] <path>
 Creates a skeleton site in <path>.
 
 Options:
-  -f, --force               Overwrite existing files.
-  -T, --template <name>     Template to use when creating new site.  Default value is "blog".
+  -f, --force                   Overwrite existing files.
+  -T, --template <name>         Template to use when creating new site.  Default value is "blog".
 
   The available templates are ${Object.keys(siteTemplates).join(', ')}.
 

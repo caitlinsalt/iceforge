@@ -65,6 +65,10 @@ export default class Config implements IConfig {
     // In build mode, render pages in parallel.
     parallelRender: boolean;
 
+    // In preview mode, when a request is received, only rerun generator plugins if more than this time (in seconds) 
+    // has elapsed since their last run.  Defaults to 5.
+    minRegenerationDelay: number;
+
     // File that this configuration object was loaded from.
     filename: string;
 
@@ -107,4 +111,5 @@ export const defaultConfig: IConfig = {
     port: 8080,
     restartOnConfigChange: true,
     parallelRender: true,
+    minRegenerationDelay: 5,
 };
