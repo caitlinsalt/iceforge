@@ -223,9 +223,12 @@ export class MarkdownPage extends Page {
 
     markdown: string;
 
+    htmlCache: Record<string, string>;
+
     constructor(filepath: FilePath, metadata: Indexable, markdown: string) {
         super(filepath, metadata);
         this.markdown = markdown;
+        this.htmlCache = {};
     }
 
     get name() {
@@ -239,8 +242,12 @@ export class MarkdownPage extends Page {
     }
 
     getHtml(base: string = this.__env.config.baseUrl): string {
-        const options = this.__env.config.markdown || {};
-        return parseMarkdown(this, this.markdown, this.getLocation(base), options);
+        if (!this.htmlCache[base]) {
+            const options = this.__env.config.markdown || {};
+            this.htmlCache[base] = parseMarkdown(this, this.markdown, this.getLocation(base), options);
+        }
+
+        return this.htmlCache[base];
     }
 
     static async fromFile(filepath: FilePath): Promise<MarkdownPage> {
