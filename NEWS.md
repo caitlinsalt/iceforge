@@ -2,12 +2,14 @@
 
 ## Release 1.1.0
 
-- Marked has been updated to v13 ([#41](https://github.com/caitlinsalt/iceforge/issues/41)).  This version of Marked includes a breaking change to the renderer API, resulting in changes to Iceforge's link-rendering and image-rendering code.
+Released 2024-08-03
+
+- Marked has been updated to v13 ([#41](https://github.com/caitlinsalt/iceforge/issues/41)).  This version of Marked includes a breaking change to the renderer API, resulting in changes to Iceforge's link-rendering and image-rendering code.  The Marked extensions used have all been updated to their latest versions.
 - The `MarkdownPage` and `JsonPage` plugins now cache the results of calls to the `html` getter and `getHtml()` function ([#64](https://github.com/caitlinsalt/iceforge/issues/64)).  As the latter is also called by `intro`, `getIntro()` and `hasMore`, this substantially reduces the number of Marked instantiations.
 - In build mode, file rendering is now done in parallel ([#43](https://github.com/caitlinsalt/iceforge/issues/43)).  This should not cause any issues with well-behaved view functions, but may change the behaviour when run with view functions that illictly modify the state of the content tree.  The old behaviour can be retained with the command-line option `--parallelRender=false`.
 - In preview mode, the result of calling generator functions is briefly cached ([#30](https://github.com/caitlinsalt/iceforge/issues/30)).  Compared to the previous behaviour, which reran all generator functions on every HTTP request, this greatly improves performance when running preview mode for large sites.  The cache time, which defaults to 5 seconds, can be controlled using the `--minRegenerationDelay` command-line option.  Setting `--minRegenerationDelay=0` will simulate the previous behaviour.  This also resolves [Issue #28](https://github.com/caitlinsalt/iceforge/issues/28).
 - The preview mode networking code has been rewritten for increased efficiency and ease of maintenance ([#31](https://github.com/caitlinsalt/iceforge/issues/31)).
-- Major-level dependency updates have been applied to Vitest (to v2.0.4, [#55](https://github.com/caitlinsalt/iceforge/issues/55)), 
+- Major-level dependency updates have been applied to Vitest (to v2.0.4, [#55](https://github.com/caitlinsalt/iceforge/issues/55)), Mime (to v4.0.4, [#52](https://github.com/caitlinsalt/iceforge/issues/52)) and Minimatch (to v10.0.1, [#53](https://github.com/caitlinsalt/iceforge/issues/53)).
 
 ## Release 1.0.6
 
