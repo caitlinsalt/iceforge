@@ -187,7 +187,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     testObject.getHtml('/testBase');
@@ -261,7 +262,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     testObject.getHtml('/testBase');
@@ -336,7 +338,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     testObject.getHtml();
@@ -410,7 +413,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     testObject.getHtml();
@@ -485,7 +489,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -561,7 +566,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -640,7 +646,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -788,7 +795,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -937,7 +945,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1085,7 +1094,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1234,7 +1244,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1382,7 +1393,8 @@ describe('MarkdownPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1532,7 +1544,8 @@ describe('MarkdownPage tests', () => {
                     renderer: {
                         link: expect.any(Function),
                         image: expect.any(Function)
-                    }
+                    },
+                    useNewRenderer: true
                 };
 
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1685,7 +1698,8 @@ describe('MarkdownPage tests', () => {
                     renderer: {
                         link: expect.any(Function),
                         image: expect.any(Function)
-                    }
+                    },
+                    useNewRenderer: true
                 };
 
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
