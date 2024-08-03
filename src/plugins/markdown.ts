@@ -11,7 +11,7 @@
 
 import fs from 'node:fs/promises';
 
-import { Marked } from 'marked';
+import { Marked, MarkedExtension, Tokens } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import { mangle as markedMangle } from 'marked-mangle';
 import { markedSmartypants } from 'marked-smartypants';
@@ -27,7 +27,7 @@ import { readJson, urlResolve } from '../core/utils.js';
 
 // This is a slightly fishy absolute URI test: it selects anything that looks like it could start with a scheme.
 const isAbsoluteUri = (url: string): boolean => {
-    return !!(url.match(/^[a-zA-Z.+]+:/));
+    return url && !!(url.match(/^[a-zA-Z.+]+:/));
 };
 
 // Rewrite a URL target if it is relative
@@ -77,17 +77,6 @@ const resolveLink = (content: ContentPlugin, uri: string, baseUri: string): stri
     return urlResolve(baseUri, uri);
 };
 
-// Simplified versions of Marked's actual types.
-type MarkedRendererExtension = {
-    link: (href: string, title:string, text:string) => string;
-    image: (href: string, title:string, text:string) => string;
-}
-
-type MarkedExtension = {
-    highlight: (code: string, lang: string) => string;
-    renderer: MarkedRendererExtension;
-}
-
 const highlighter = (code: string, lang: string): string => {
     try {
         if (lang === 'auto') {
@@ -133,9 +122,10 @@ export const imageRenderer = (content: ContentPlugin, baseUrl: string, href: str
 // Set up a Marked instance with our own configuration and extensions, and render the page.
 const parseMarkdown = (content: ContentPlugin, markdown: string, baseUrl: string, options: MarkedExtension) => {
     options.renderer = {
-        link: (href: string, title: string, text: string): string => linkRenderer(content, baseUrl, href, title, text),
-        image: (href: string, title: string, text: string): string => imageRenderer(content, baseUrl, href, title, text)
+        link: (token: Tokens.Link): string => linkRenderer(content, baseUrl, token.href, token.title, token.text),
+        image: (token: Tokens.Image): string => imageRenderer(content, baseUrl, token.href, token.title, token.text),
     };
+    options.useNewRenderer = true;
 
     const highlightRoutine = markedHighlight({
         langPrefix: 'hljs language-',
@@ -151,7 +141,22 @@ const parseMarkdown = (content: ContentPlugin, markdown: string, baseUrl: string
         markedSmartypants(), 
         gfmHeadingId(headingIdOptions)
     );
-    return marked.parse(markdown);
+
+    const result = marked.parse(markdown);
+    if (typeof result === 'string') {
+        return result;
+    }
+
+    let finalResult = '';
+    (async () => {
+        await new Promise<void>((resolve) => {
+            result.then(r => {
+                finalResult = r;
+                resolve();
+            });
+        });
+    })();
+    return finalResult;
 };
 
 // Take the frontmatter part of the page, and parse it as YAML.
@@ -218,9 +223,12 @@ export class MarkdownPage extends Page {
 
     markdown: string;
 
+    htmlCache: Record<string, string>;
+
     constructor(filepath: FilePath, metadata: Indexable, markdown: string) {
         super(filepath, metadata);
         this.markdown = markdown;
+        this.htmlCache = {};
     }
 
     get name() {
@@ -234,8 +242,12 @@ export class MarkdownPage extends Page {
     }
 
     getHtml(base: string = this.__env.config.baseUrl): string {
-        const options = this.__env.config.markdown || {};
-        return parseMarkdown(this, this.markdown, this.getLocation(base), options);
+        if (!this.htmlCache[base]) {
+            const options = this.__env.config.markdown || {};
+            this.htmlCache[base] = parseMarkdown(this, this.markdown, this.getLocation(base), options);
+        }
+
+        return this.htmlCache[base];
     }
 
     static async fromFile(filepath: FilePath): Promise<MarkdownPage> {

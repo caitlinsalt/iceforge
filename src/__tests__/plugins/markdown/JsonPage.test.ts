@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import * as path from 'node:path';
-import { Marked } from 'marked';
+import { Marked, MarkedExtension } from 'marked';
 import { markedHighlight } from 'marked-highlight';
 import { mangle } from 'marked-mangle';
 import { markedSmartypants } from 'marked-smartypants';
@@ -173,13 +173,13 @@ describe('JsonPage tests', () => {
         describe('When getHtml() is called with parameter...', () => {
             describe('...and Markdown config is not set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -191,7 +191,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     testObject.getHtml('/testBase');
@@ -209,7 +210,7 @@ describe('JsonPage tests', () => {
 
                 test('...Marked.parse() is called', () => {
                     const mockMarked = {
-                        parse: vi.fn()
+                        parse: vi.fn(() => '')
                     };
                     vi.mocked(Marked).mockImplementation(() => mockMarked as unknown as Marked);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
@@ -246,13 +247,13 @@ describe('JsonPage tests', () => {
 
             describe('...and Markdown config is set', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -265,7 +266,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     testObject.getHtml('/testBase');
@@ -283,7 +285,7 @@ describe('JsonPage tests', () => {
 
                 test('...Marked.parse() is called', () => {
                     const mockMarked = {
-                        parse: vi.fn()
+                        parse: vi.fn(() => '')
                     };
                     vi.mocked(Marked).mockImplementation(() => mockMarked as unknown as Marked);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
@@ -322,13 +324,13 @@ describe('JsonPage tests', () => {
         describe('When getHtml() is called without parameter...', () => {
             describe('...and Markdown config is not set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -340,7 +342,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     testObject.getHtml();
@@ -358,7 +361,7 @@ describe('JsonPage tests', () => {
 
                 test('...Marked.parse() is called', () => {
                     const mockMarked = {
-                        parse: vi.fn()
+                        parse: vi.fn(() => '')
                     };
                     vi.mocked(Marked).mockImplementation(() => mockMarked as unknown as Marked);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
@@ -395,13 +398,13 @@ describe('JsonPage tests', () => {
 
             describe('...and Markdown config is set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -414,7 +417,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     testObject.getHtml();
@@ -432,7 +436,7 @@ describe('JsonPage tests', () => {
 
                 test('...Marked.parse() is called', () => {
                     const mockMarked = {
-                        parse: vi.fn()
+                        parse: vi.fn(() => '')
                     };
                     vi.mocked(Marked).mockImplementation(() => mockMarked as unknown as Marked);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
@@ -471,13 +475,13 @@ describe('JsonPage tests', () => {
         describe('When html getter is called...', () => {
             describe('...and Markdown config is not set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -489,7 +493,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -508,7 +513,7 @@ describe('JsonPage tests', () => {
 
                 test('...Marked.parse() is called', () => {
                     const mockMarked = {
-                        parse: vi.fn()
+                        parse: vi.fn(() => '')
                     };
                     vi.mocked(Marked).mockImplementation(() => mockMarked as unknown as Marked);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
@@ -546,13 +551,13 @@ describe('JsonPage tests', () => {
 
             describe('...and Markdown config is set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -565,7 +570,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -584,7 +590,7 @@ describe('JsonPage tests', () => {
 
                 test('...Marked.parse() is called', () => {
                     const mockMarked = {
-                        parse: vi.fn()
+                        parse: vi.fn(() => '')
                     };
                     vi.mocked(Marked).mockImplementation(() => mockMarked as unknown as Marked);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
@@ -626,13 +632,13 @@ describe('JsonPage tests', () => {
         describe('When getIntro() is called with parameter...', () => {
             describe('...and Markdown config is not set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -644,7 +650,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -773,13 +780,13 @@ describe('JsonPage tests', () => {
 
             describe('...and Markdown config is set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -792,7 +799,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -923,13 +931,13 @@ describe('JsonPage tests', () => {
         describe('When getIntro() is called without parameter...', () => {
             describe('...and Markdown config is not set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -941,7 +949,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1070,13 +1079,13 @@ describe('JsonPage tests', () => {
 
             describe('...and Markdown config is set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -1089,7 +1098,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1220,13 +1230,13 @@ describe('JsonPage tests', () => {
         describe('When intro getter is called...', () => {
             describe('...and Markdown config is not set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -1238,7 +1248,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1367,13 +1378,13 @@ describe('JsonPage tests', () => {
 
             describe('...and Markdown config is set...', () => {
                 test('...Marked instance is created correctly', () => {
-                    const mockHighlighter = vi.fn();
+                    const mockHighlighter = vi.fn() as MarkedExtension;
                     vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                    const mockMangler = vi.fn();
+                    const mockMangler = vi.fn() as MarkedExtension;
                     vi.mocked(mangle).mockImplementation(() => mockMangler);
-                    const mockTypographer = vi.fn();
+                    const mockTypographer = vi.fn() as MarkedExtension;
                     vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                    const mockHeadingExtension = vi.fn();
+                    const mockHeadingExtension = vi.fn() as MarkedExtension;
                     vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                     const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                     const testMetadata = {};
@@ -1386,7 +1397,8 @@ describe('JsonPage tests', () => {
                         renderer: {
                             link: expect.any(Function),
                             image: expect.any(Function)
-                        }
+                        },
+                        useNewRenderer: true
                     };
 
                     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1518,13 +1530,13 @@ describe('JsonPage tests', () => {
     describe('When hasmore getter is called...', () => {
         describe('...and Markdown config is not set', () => {
             test('...Marked instance is created correctly', () => {
-                const mockHighlighter = vi.fn();
+                const mockHighlighter = vi.fn() as MarkedExtension;
                 vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                const mockMangler = vi.fn();
+                const mockMangler = vi.fn() as MarkedExtension;
                 vi.mocked(mangle).mockImplementation(() => mockMangler);
-                const mockTypographer = vi.fn();
+                const mockTypographer = vi.fn() as MarkedExtension;
                 vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                const mockHeadingExtension = vi.fn();
+                const mockHeadingExtension = vi.fn() as MarkedExtension;
                 vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                 const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                 const testMetadata = {};
@@ -1536,7 +1548,8 @@ describe('JsonPage tests', () => {
                     renderer: {
                         link: expect.any(Function),
                         image: expect.any(Function)
-                    }
+                    },
+                    useNewRenderer: true
                 };
 
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1670,13 +1683,13 @@ describe('JsonPage tests', () => {
         
         describe('...and Markdown config is set', () => {
             test('...Marked instance is created correctly', () => {
-                const mockHighlighter = vi.fn();
+                const mockHighlighter = vi.fn() as MarkedExtension;
                 vi.mocked(markedHighlight).mockImplementation(() => mockHighlighter);
-                const mockMangler = vi.fn();
+                const mockMangler = vi.fn() as MarkedExtension;
                 vi.mocked(mangle).mockImplementation(() => mockMangler);
-                const mockTypographer = vi.fn();
+                const mockTypographer = vi.fn() as MarkedExtension;
                 vi.mocked(markedSmartypants).mockImplementation(() => mockTypographer);
-                const mockHeadingExtension = vi.fn();
+                const mockHeadingExtension = vi.fn() as MarkedExtension;
                 vi.mocked(gfmHeadingId).mockImplementation(() => mockHeadingExtension);
                 const testFilepath = { full: '/www/content/file.page', relative: 'content/index.html' };
                 const testMetadata = {};
@@ -1689,7 +1702,8 @@ describe('JsonPage tests', () => {
                     renderer: {
                         link: expect.any(Function),
                         image: expect.any(Function)
-                    }
+                    },
+                    useNewRenderer: true
                 };
 
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -164,6 +164,16 @@ describe('loadEnv() tests', () => {
         expect((vi.mocked(Environment.create).mock.lastCall?.[0] as IConfig).port).toBe(expectedValue);
     });
 
+    test('If minRegenerationDelay is set, loadEnv() overrides value in config file', async () => {
+        vi.mocked(fileExists).mockImplementation(async () => false);
+        const expectedValue = 4472;
+        const testParameter = { ...standardTestOptions, minRegenerationDelay: expectedValue };
+
+        await loadEnv(testParameter);
+
+        expect((vi.mocked(Environment.create).mock.lastCall?.[0] as IConfig).minRegenerationDelay).toBe(expectedValue);
+    });
+
     test('If ignore option is set, loadEnv() overrides value in config file', async () => {
         vi.mocked(fileExists).mockImplementation(async () => false);
         const expectedValue = [ 'Test', 'ignored' ];

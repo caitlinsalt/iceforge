@@ -14,8 +14,9 @@ Usage: iceforge build [options]
 
 Options:
 
-  -o, --output [path]       Directory to write build output to (defaults to ./build).
-  -X, --clean               Clear output directory before building.
+  -o, --output [path]           Directory to write build output to (defaults to ./build).
+  -X, --clean                   Clear output directory before building.
+  --parallelRender={true/false} Run renderers in parallel (defaults to true).
   ${commonUsage}
 
   All options can also be set in the config file.
@@ -33,17 +34,21 @@ Examples:
 `;
 
 export const options = {
-    boolean: ['clean'],
+    boolean: ['clean', 'parallelRender'],
     string: ['output'],
     alias: {
         output: 'o',
         clean: 'X'
+    },
+    defaults: {
+        parallelRender: true
     }
 };
 
 interface BuildOpts extends CommonOptions {
     clean: boolean;
     output: string;
+    parallelRender: boolean;
 }
 
 extendOptions(options, commonOptions);

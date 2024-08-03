@@ -1,6 +1,7 @@
 import { ReadStream } from 'node:fs';
 import { createServer, ServerResponse, IncomingMessage, Server } from 'node:http';
 import { pipeline } from 'node:stream/promises';
+import { Readable } from 'node:stream';
 
 import chalk from 'chalk';
 import chokidar, { FSWatcher } from 'chokidar';
@@ -15,6 +16,8 @@ import Environment from './environment.js';
 import runGenerator from './generator.js';
 import { renderView } from './render.js';
 import logger from './logger.js';
+
+const message404 = Buffer.from('404 Not Found In Aberhwmbr\n');
 
 // Utility function to map HTTP return codes to colours.
 const colourCode = (code: number): string => {
@@ -65,6 +68,10 @@ type RequestHandlerFunc = {
 // Also sets up change handlers to try to reload parts of the environment if changes are detected.
 const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
     let contents: IContentTree = null;
+    let generatedContentTree: IContentTree = null;
+    let lastGenerationTime: number = null;
+    let generatedContentMap: ContentMap = {};
+    const generationTimeout = env.config.minRegenerationDelay * 1000;
     let templates: TemplateMap = null;
     let locals: LocalMap = null;
     let staticContentMap: ContentMap = {};
@@ -101,6 +108,8 @@ const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
     const loadContents = async (): Promise<boolean> => {
         block.contentsLoad = true;
         staticContentMap = {};
+        generatedContentMap = {};
+        generatedContentTree = null;
         contents = null;
         let rval = true;
         try {
@@ -203,51 +212,67 @@ const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
         const uri = normaliseUrl(new URL(request.url, `http://${request.headers.host}`).pathname);
         env.logger.verbose(`contentHandler - ${uri}`);
 
-        // Rerun generators.
-        // A good optimisation here would be to keep track of when it was last done, and only rerun them if more
-        // than a certain time had elapsed.  I don't think there is any need to rerun all generators for, say, every
-        // request for a single page.
-        const generated = await Promise.all(env.generators.map(async (g) => runGenerator(env, contents, g)));
-        let tree = contents;
-        let generatedContentMap: ContentMap = {};
-        if (generated.length > 0) {
-            tree = new ContentTree('', env.getContentGroups());
-            for (const gentree of generated) {
-                ContentTree.merge(tree, gentree);
+        // Rerun generators if needed.
+        if ((!generatedContentTree) || (lastGenerationTime + generationTimeout < Date.now())) {
+            const generated = await Promise.all(env.generators.map(async (g) => runGenerator(env, contents, g)));
+            generatedContentTree = contents;
+            
+            if (generated.length > 0) {
+                generatedContentTree = new ContentTree('', env.getContentGroups());
+                for (const gentree of generated) {
+                    ContentTree.merge(generatedContentTree, gentree);
+                }
+                generatedContentMap = buildLookupMap(generated);
+                ContentTree.merge(generatedContentTree, contents);
             }
-            generatedContentMap = buildLookupMap(generated);
-            ContentTree.merge(tree, contents);
+
+            lastGenerationTime = Date.now();
         }
 
         const content = generatedContentMap[uri] || staticContentMap[uri];
         if (content) {
             const pluginName = content.__plugin.name;
             try {
-                const renderOutput = await renderView(env, content, locals, tree, templates);
+                const renderOutput = await renderView(env, content, locals, generatedContentTree, templates);
+                let code = 200;
                 if (renderOutput) {
+                    if (!(renderOutput instanceof Buffer || renderOutput instanceof ReadStream)) {
+                        throw new Error(`Something is wrong in Iceforge!  View for content ${content.filename} returned invalid response; Buffer or Stream expected.`);
+                    }
                     const mimeType = mime.getType(content.filename) || mime.getType(uri);
                     const charset = lookupCharset(mimeType);
                     const contentType = charset ? `${mimeType}; charset=${charset}` : mimeType;
-                    if (renderOutput instanceof ReadStream) {
-                        response.writeHead(200, { 'Content-Type': contentType });
-                        await pipeline(renderOutput, response);
-                    } else if (renderOutput instanceof Buffer) {
-                        response.writeHead(200, { 'Content-Type': contentType });
-                        response.write(renderOutput);
-                        response.end();
-                    } else {
-                        throw new Error(`Something is wrong in Iceforge!  View for content ${content.filename} returned invalid response; Buffer or Stream expected.`);
-                    }
-                    return { error: null, code: 200, pluginName, };
+                    await writeOutput(response, code, contentType, renderOutput);
+                    return { error: null, code, pluginName, };
                 } else {
-                    return return404(response, pluginName);
+                    code = 404;
+                    await writeOutput(response, code, 'text/plain', message404);
+                    return { error: null, code, pluginName };
                 }
             } catch (error) {
                 logger.verbose(error.message);
+                await writeOutput(response, 500, 'text/plain', error.message);
                 return { error, code: 500, pluginName };
             }
         }
         return return404(response, 'Unknown ');
+    };
+
+    const writeOutput = async (response: ServerResponse, code: number, contentType: string, content: ReadStream | Buffer): Promise<void> => {
+        let source;
+        if (content instanceof Buffer) {
+            source = Readable.from(content);
+        } else {
+            source = content;
+        }
+
+        if (!response.headersSent && response.socket) {
+            response.writeHead(code, { 'Content-Type': contentType});
+        }
+        if (!response.writableEnded && response.socket) {
+            await pipeline(source, response);
+            response.end();
+        }
     };
 
     // Handles incoming HTTP requests.  Checks that the environment is properly loaded; calls the content handler, and sends the appropriate 
@@ -265,15 +290,9 @@ const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
             await sleep();
         }
         const handlerFeedback = await contentHandler(request, response);
-        let responseCode: number;
-        if (!handlerFeedback || handlerFeedback.error) {
-            responseCode = handlerFeedback ? handlerFeedback.code : 404;
-            if (!response.headersSent && response.socket) {
-                response.writeHead(responseCode, { 'Content-Type': 'text/plain' });
-            }
-            if (!response.writableEnded && response.socket) {
-                response.end(handlerFeedback.error ? handlerFeedback.error.message : '404 Not Found\n');
-            }
+        let responseCode = 404;
+        if (!handlerFeedback) {
+            writeOutput(response, responseCode, 'text/plain', message404);
         } else {
             responseCode = handlerFeedback.code;
         }
