@@ -1,6 +1,7 @@
 import { ReadStream } from 'node:fs';
 import { createServer, ServerResponse, IncomingMessage, Server } from 'node:http';
 import { pipeline } from 'node:stream/promises';
+import { Readable } from 'node:stream';
 
 import chalk from 'chalk';
 import chokidar, { FSWatcher } from 'chokidar';
@@ -15,6 +16,8 @@ import Environment from './environment.js';
 import runGenerator from './generator.js';
 import { renderView } from './render.js';
 import logger from './logger.js';
+
+const message404 = Buffer.from('404 Not Found In Aberhwmbr\n');
 
 // Utility function to map HTTP return codes to colours.
 const colourCode = (code: number): string => {
@@ -231,30 +234,45 @@ const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
             const pluginName = content.__plugin.name;
             try {
                 const renderOutput = await renderView(env, content, locals, generatedContentTree, templates);
+                let code = 200;
                 if (renderOutput) {
+                    if (!(renderOutput instanceof Buffer || renderOutput instanceof ReadStream)) {
+                        throw new Error(`Something is wrong in Iceforge!  View for content ${content.filename} returned invalid response; Buffer or Stream expected.`);
+                    }
                     const mimeType = mime.getType(content.filename) || mime.getType(uri);
                     const charset = lookupCharset(mimeType);
                     const contentType = charset ? `${mimeType}; charset=${charset}` : mimeType;
-                    if (renderOutput instanceof ReadStream) {
-                        response.writeHead(200, { 'Content-Type': contentType });
-                        await pipeline(renderOutput, response);
-                    } else if (renderOutput instanceof Buffer) {
-                        response.writeHead(200, { 'Content-Type': contentType });
-                        response.write(renderOutput);
-                        response.end();
-                    } else {
-                        throw new Error(`Something is wrong in Iceforge!  View for content ${content.filename} returned invalid response; Buffer or Stream expected.`);
-                    }
-                    return { error: null, code: 200, pluginName, };
+                    await writeOutput(response, code, contentType, renderOutput);
+                    return { error: null, code, pluginName, };
                 } else {
-                    return return404(response, pluginName);
+                    code = 404;
+                    await writeOutput(response, code, 'text/plain', message404);
+                    return { error: null, code, pluginName };
                 }
             } catch (error) {
                 logger.verbose(error.message);
+                await writeOutput(response, 500, 'text/plain', error.message);
                 return { error, code: 500, pluginName };
             }
         }
         return return404(response, 'Unknown ');
+    };
+
+    const writeOutput = async (response: ServerResponse, code: number, contentType: string, content: ReadStream | Buffer): Promise<void> => {
+        let source;
+        if (content instanceof Buffer) {
+            source = Readable.from(content);
+        } else {
+            source = content;
+        }
+
+        if (!response.headersSent && response.socket) {
+            response.writeHead(code, { 'Content-Type': contentType});
+        }
+        if (!response.writableEnded && response.socket) {
+            await pipeline(source, response);
+            response.end();
+        }
     };
 
     // Handles incoming HTTP requests.  Checks that the environment is properly loaded; calls the content handler, and sends the appropriate 
@@ -272,15 +290,9 @@ const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
             await sleep();
         }
         const handlerFeedback = await contentHandler(request, response);
-        let responseCode: number;
-        if (!handlerFeedback || handlerFeedback.error) {
-            responseCode = handlerFeedback ? handlerFeedback.code : 404;
-            if (!response.headersSent && response.socket) {
-                response.writeHead(responseCode, { 'Content-Type': 'text/plain' });
-            }
-            if (!response.writableEnded && response.socket) {
-                response.end(handlerFeedback.error ? handlerFeedback.error.message : '404 Not Found\n');
-            }
+        let responseCode = 404;
+        if (!handlerFeedback) {
+            writeOutput(response, responseCode, 'text/plain', message404);
         } else {
             responseCode = handlerFeedback.code;
         }
