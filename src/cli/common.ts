@@ -43,15 +43,15 @@ export const commonOptions = {
 
 // A standard usage message for the common options shared across multiple verbs, to be inserted into those verbs' usage messages at the appropriate point
 export const commonUsage = 
-`-C, --chdir [path]        Change the working directory to [path].
-  -c, --config [path]       Path to config (defaults to ${commonOptions.default.config}).
-  -i, --contents [path]     Path to contents location (defaults to ${commonOptions.default.contents}).
-  -t, --templates [path]    Path to template location (defaults to ${commonOptions.default.templates}).
-  -L, --locals [path]       Optional path to JSON file containing template context data.
-  -M, --imports [list]       Comma-separated list of additional modules to import into the template context, in alias:module format.
-  -R, --require [list]      Synonym for --import
-  -P, --plugins             Comma-separated list of modules to load as plugins.
-  -I, --ignore              Comma-separated list of filenames or filename glob patterns to ignore.
+`-C, --chdir [path]            Change the working directory to [path].
+  -c, --config [path]           Path to config (defaults to ${commonOptions.default.config}).
+  -i, --contents [path]         Path to contents location (defaults to ${commonOptions.default.contents}).
+  -t, --templates [path]        Path to template location (defaults to ${commonOptions.default.templates}).
+  -L, --locals [path]           Optional path to JSON file containing template context data.
+  -M, --imports [list]          Comma-separated list of additional modules to import into the template context, in alias:module format.
+  -R, --require [list]          Synonym for --import
+  -P, --plugins                 Comma-separated list of modules to load as plugins.
+  -I, --ignore                  Comma-separated list of filenames or filename glob patterns to ignore.
 `;
 
 // Merge two sets of command line options, mutating the first.
@@ -99,7 +99,7 @@ export const loadEnv = async (options: CommonOptions) : Promise<IEnvironment> =>
         if (exclude.includes(key)) {
             continue;
         }
-        if (key === 'port') {
+        if (['port', 'minRegenerationDelay'].includes(key)) {
             value = Number(options[key]);
         } else if (['ignore', 'imports', 'require', 'plugins'].includes(key)) {
             value = (options[key] as string).split(',');

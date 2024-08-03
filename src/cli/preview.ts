@@ -12,8 +12,9 @@ Usage: iceforge preview [options]
 
 Options:
 
-  -p, --port [port]         Port to run server on (default to ${defaultConfig.port})
-  -H, --hostname            Host address to bind server to (defaults to INADDR_ANY)
+  -p, --port [port]             Port to run server on (default to ${defaultConfig.port})
+  -H, --hostname                Host address to bind server to (defaults to INADDR_ANY)
+  -d, --minRegenerationDelay    Only rerun generators after this period has elapsed (seconds, defaults to 5)
   ${commonUsage}
 
   Options can also be set in the config file.
@@ -26,10 +27,14 @@ Examples:
 `;
 
 export const options = {
-    string: ['port', 'hostname'],
+    string: ['port', 'hostname', 'minRegenerationDelay'],
     alias: {
         port: 'p',
-        hostname: 'H'
+        hostname: 'H',
+        minRegenerationDelay: 'd'
+    },
+    defaults: {
+        minRegenerationDelay: '5'
     }
 };
 

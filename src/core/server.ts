@@ -65,6 +65,10 @@ type RequestHandlerFunc = {
 // Also sets up change handlers to try to reload parts of the environment if changes are detected.
 const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
     let contents: IContentTree = null;
+    let generatedContentTree: IContentTree = null;
+    let lastGenerationTime: number = null;
+    let generatedContentMap: ContentMap = {};
+    const generationTimeout = env.config.minRegenerationDelay * 1000;
     let templates: TemplateMap = null;
     let locals: LocalMap = null;
     let staticContentMap: ContentMap = {};
@@ -101,6 +105,8 @@ const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
     const loadContents = async (): Promise<boolean> => {
         block.contentsLoad = true;
         staticContentMap = {};
+        generatedContentMap = {};
+        generatedContentTree = null;
         contents = null;
         let rval = true;
         try {
@@ -203,27 +209,28 @@ const setup = async (env: Environment): Promise<RequestHandlerFunc> => {
         const uri = normaliseUrl(new URL(request.url, `http://${request.headers.host}`).pathname);
         env.logger.verbose(`contentHandler - ${uri}`);
 
-        // Rerun generators.
-        // A good optimisation here would be to keep track of when it was last done, and only rerun them if more
-        // than a certain time had elapsed.  I don't think there is any need to rerun all generators for, say, every
-        // request for a single page.
-        const generated = await Promise.all(env.generators.map(async (g) => runGenerator(env, contents, g)));
-        let tree = contents;
-        let generatedContentMap: ContentMap = {};
-        if (generated.length > 0) {
-            tree = new ContentTree('', env.getContentGroups());
-            for (const gentree of generated) {
-                ContentTree.merge(tree, gentree);
+        // Rerun generators if needed.
+        if ((!generatedContentTree) || (lastGenerationTime + generationTimeout < Date.now())) {
+            const generated = await Promise.all(env.generators.map(async (g) => runGenerator(env, contents, g)));
+            generatedContentTree = contents;
+            
+            if (generated.length > 0) {
+                generatedContentTree = new ContentTree('', env.getContentGroups());
+                for (const gentree of generated) {
+                    ContentTree.merge(generatedContentTree, gentree);
+                }
+                generatedContentMap = buildLookupMap(generated);
+                ContentTree.merge(generatedContentTree, contents);
             }
-            generatedContentMap = buildLookupMap(generated);
-            ContentTree.merge(tree, contents);
+
+            lastGenerationTime = Date.now();
         }
 
         const content = generatedContentMap[uri] || staticContentMap[uri];
         if (content) {
             const pluginName = content.__plugin.name;
             try {
-                const renderOutput = await renderView(env, content, locals, tree, templates);
+                const renderOutput = await renderView(env, content, locals, generatedContentTree, templates);
                 if (renderOutput) {
                     const mimeType = mime.getType(content.filename) || mime.getType(uri);
                     const charset = lookupCharset(mimeType);
