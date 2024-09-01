@@ -1279,7 +1279,8 @@ describe('JsonPage tests', () => {
                     const testObject = new JsonPage(testFilepath, testMetadata, testMarkdown);
                     testObject.__env = fakeEnvironment;
 
-                    testObject.intro;
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const _ = testObject.intro;
 
                     expect(mockMarked.parse).toHaveBeenCalledOnce();
                     expect(mockMarked.parse).toHaveBeenLastCalledWith(testMarkdown);
@@ -1428,7 +1429,8 @@ describe('JsonPage tests', () => {
                     const testObject = new JsonPage(testFilepath, testMetadata, testMarkdown);
                     testObject.__env = fakeEnvironment;
 
-                    testObject.intro;
+                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                    const _ = testObject.intro;
 
                     expect(mockMarked.parse).toHaveBeenCalledOnce();
                     expect(mockMarked.parse).toHaveBeenLastCalledWith(testMarkdown);

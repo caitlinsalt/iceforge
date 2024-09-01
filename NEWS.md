@@ -1,5 +1,14 @@
 # Iceforge updates
 
+## Release 1.1.1
+
+Released 2024-08-01
+
+- A moderate severity vulnerability in one transitive dependency (on Micromatch) has been resolved.
+- The version of eslint used has been upgraded to v9.9.1.  This has entailed changes to the eslint configuration file format.
+- Minor-level dependency updates have been applied to Luxon (to v3.5.0) and Winston (to v3.14.2).
+- Patch-level dependency updates have been applied to Marked extensions marked-gfm-heading-id, marked-highlight, marked-mangle and marked-smartypants.
+
 ## Release 1.1.0
 
 Released 2024-08-03
