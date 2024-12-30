@@ -1,5 +1,15 @@
 # Iceforge updates
 
+## Release 1.1.2
+
+Released 2024-12-30
+
+- High severity vulnerabilities in two transitive dependencies (on cross-spawn and rollup) have been resolved.
+- Moderate severity vulnerabilities in two transitive dependencies (on nanoid and vite) have been resolved.
+- Major level dependency updates have been applied to chokidar (to v4.0.3) and eslint (to v9.17.0).
+- Minor level dependency updates have been applied to chalk (to v5.4.1), highlight.js (to v11.11.1), winston (to v3.17.0), eslint (to v9.17.0), @typescript-eslint/eslint-plugin and @typescript-eslint/parser (to v8.18.2), vitest (to v2.1.8), @eslint/eslintrc (to v.3.2.0) and @eslint/js (to v9.17.0).
+- Patch level dependency updates have been applied to mime (to v4.0.6).
+
 ## Release 1.1.1
 
 Released 2024-08-01
