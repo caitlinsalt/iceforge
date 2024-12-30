@@ -2,6 +2,8 @@
 
 ## Release 1.1.2
 
+Released 2024-12-30
+
 - High severity vulnerabilities in two transitive dependencies (on cross-spawn and rollup) have been resolved.
 - Moderate severity vulnerabilities in two transitive dependencies (on nanoid and vite) have been resolved.
 - Major level dependency updates have been applied to chokidar (to v4.0.3) and eslint (to v9.17.0).
