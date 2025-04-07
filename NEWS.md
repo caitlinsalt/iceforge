@@ -2,7 +2,7 @@
 
 ## Release 1.2.0
 
-Released FIXME
+Released 2025-04-07
 
 - Iceforge now uses Typescript 5.8.  The exact version is 5.8.3
 - One critical and several moderate security issues have been resolved by updating vitest to v3.1.1.  One dynamic import warning has been suppressed (issue #74).
