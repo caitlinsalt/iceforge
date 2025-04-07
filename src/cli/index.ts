@@ -49,7 +49,7 @@ const main = async (argv: string[]) => {
     };
 
     const runCommand = async (cmd: string) => {
-        const cmdModule = await import(`./${cmd}.js`);
+        const cmdModule = await import(/* @vite-ignore */`./${cmd}.js`);
         const cmdFunc = cmdModule.default;
 
         if (opts.help) {
