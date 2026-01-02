@@ -2,7 +2,7 @@
   "type": "module",
   "dependencies": {
     "github-slugger": "^2.0.0",
-    "luxon": "^3.6.1",
+    "luxon": "^3.7.2",
     "underscore": "^1.13.7"
   },
   "private": true
