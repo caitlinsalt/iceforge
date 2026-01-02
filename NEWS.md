@@ -1,5 +1,18 @@
 # Iceforge updates
 
+## Release 1.3.0
+
+- Iceforge now uses Typescript 5.9.  The exact version is 5.9.3
+- Vitest has been updated to v3.2.4, and an underlying moderate security issue with development dependency vite has been resolved by upgrading from v6.4.1 to v7.3.0. 
+- A moderate security issue with js-yaml has resolved by updating to v4.1.1
+- A low security issue with dependency @eslint/plugin-kit has been resolved by updating to v0.4.1.
+- Two low security issues with dependency brace-expansion have been resolved by updating to v5.0.0
+- Minor-level dependency updates have been applied to @types/luxon (to v3.7.1), chalk (to v5.6.2), luxon (to v3.7.2), mime (to v4.1.0), minimatch (to v10.1.1) and winston (to v3.19.0)
+- Patch-level dependency updates have been applied to fs-extra (to v11.3.3), marked-gfm-heading-id (to v4.1.3), marked-highlight (to v2.2.3), marked-mangle (to v1.1.12) and marked-smartypants (to v.1.1.11)
+- Minor-level development dependency updates have been applied to @types/node (to v22.19.3), @typescript-eslint/eslint-plugin (to v8.51.0), @typescript-eslint/parser (to v8.51.0) and eslint (to v9.39.2)
+- Patch-level development dependency updates have been applied to @eslint/eslintrc (to v3.3.3)
+- In the blog template, a minor update has been applied to luxon (to v3.7.2)
+
 ## Release 1.2.0
 
 Released 2025-04-07
