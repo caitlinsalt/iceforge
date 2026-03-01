@@ -1,5 +1,14 @@
 # Iceforge updates
 
+## Release 1.3.1
+
+Released 2026-03-01.  This release consists solely of dependency updates, primarily due to a security vulnerability in minimatch.
+
+- minimatch has been updated to v10.2.4.
+- @eslint/eslintrc has been updated to v3.3.4, as the previous version depended on a vulnerable version of minimatch
+- Minor-level development dependency updates have been applied to @typescript-eslint/eslint-plugin and @typescript-eslint/parser (to v8.56.1).
+- Patch-level development dependency updates have been applied to @types/node (to v22.19.13) and eslint (to v9.39.3).
+
 ## Release 1.3.0
 
 Released 2026-01-03
