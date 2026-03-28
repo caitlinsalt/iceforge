@@ -1,5 +1,10 @@
 # Iceforge updates
 
+## Release 1.3.3
+
+Released 2026-03-28.  This release consists of updates to resolve security issues in a small number of transitive dependencies,
+and minor-level direct dependency updates.
+
 ## Release 1.3.2
 
 Release 2026-03-14.  This release consists solely of dependency updates, due to a security vulnerability in flatted.
