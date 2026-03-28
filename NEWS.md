@@ -1,5 +1,12 @@
 # Iceforge updates
 
+## Release 1.3.4
+
+Released 2026-03-28
+
+- [Issue #88](https://github.com/caitlinsalt/iceforge/issues/88) fixed.  The text of HTML links was being treated as literal text, and nested Markdown was not being rendered.
+- As a side effect of the above issue, the Marked parser used by each `MarkdownPage` plugin instance is now exposed as the `MarkdownPage.parser` property.
+
 ## Release 1.3.3
 
 Released 2026-03-28.  This release consists of updates to resolve security issues in a small number of transitive dependencies,

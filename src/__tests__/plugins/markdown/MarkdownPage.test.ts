@@ -2923,27 +2923,39 @@ describe('Plugin registration tests', () => {
 });
 
 describe('linkRenderer() tests', () => {
+    const getFakeMarkdownPage = () => {
+        const testFilepath = { full: '/www/content/file.page', relative: 'content/file.page' };
+        const testMetadata = { };
+        const testMarkdown = 'This is our page\'s content.';
+        const fakeMarkdownPage = new MarkdownPage(testFilepath, testMetadata, testMarkdown);
+        fakeMarkdownPage.parser = new Marked();
+        vi.mocked(fakeMarkdownPage.parser).parseInline = vi.fn(src => src);
+        return fakeMarkdownPage;
+    };
+
     describe('Returns valid link...', () => {
         test('...if the third parameter is an absolute URI', () => {
-            const fakePlugin = new FakePlugin('test.file');
+            const fakeMarkdownPage = getFakeMarkdownPage();
+            
             const testBaseUrl = 'https://example.com';
             const testHref = 'http://another.example.com/file.link';
             const testTitle = 'Title of the test link';
             const testText = 'Content to display as text in the page';
+            
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*>.*<\/a>/);
         });
 
         test('...if the third parameter starts with #', () => {
-            const fakePlugin = new FakePlugin('test.file');
+            const fakeMarkdownPage = getFakeMarkdownPage();
             const testBaseUrl = 'https://example.com';
             const testHref = '#somewhereInsideThePage';
             const testTitle = 'Title of the test link';
             const testText = 'Content to display as text in the page';
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*>.*<\/a>/);
         });
@@ -2951,8 +2963,9 @@ describe('linkRenderer() tests', () => {
         test('...if the third parameter is the filename of an item in the same node of the tree as the first parmeter', () => {
             const expectedOutput = '/finaltarget';
             const rootTree = new ContentTree('testDir');
-            const fakePlugin = new FakePlugin('test.file', undefined, rootTree);
-            rootTree['test.file'] = fakePlugin;
+            const fakeMarkdownPage = getFakeMarkdownPage();
+            fakeMarkdownPage.parent = rootTree;
+            rootTree['test.file'] = fakeMarkdownPage;
             const targetPlugin = new FakePlugin('target.file', undefined, rootTree, expectedOutput);
             rootTree['target.file'] = targetPlugin;
             const testBaseUrl = 'https://example.com';
@@ -2960,7 +2973,7 @@ describe('linkRenderer() tests', () => {
             const testTitle = 'Title of the test link';
             const testText = 'Content to display as text in the page';
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*>.*<\/a>/);
         });
@@ -2971,8 +2984,9 @@ describe('linkRenderer() tests', () => {
             const subDir = new ContentTree('subDir');
             rootTree['subDir'] = subDir;
             subDir.parent = rootTree;
-            const fakePlugin = new FakePlugin('test.file', undefined, subDir);
-            subDir['test.file'] = fakePlugin;
+            const fakeMarkdownPage = getFakeMarkdownPage();
+            fakeMarkdownPage.parent = rootTree;
+            subDir['test.file'] = fakeMarkdownPage;
             const targetPlugin = new FakePlugin('target.file', undefined, rootTree, expectedOutput);
             rootTree['target.file'] = targetPlugin;
             const testBaseUrl = 'https://example.com';
@@ -2980,7 +2994,7 @@ describe('linkRenderer() tests', () => {
             const testTitle = 'Title of the link';
             const testText = 'Content to display as link text';
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*>.*<\/a>/);
         });
@@ -2991,8 +3005,9 @@ describe('linkRenderer() tests', () => {
             const subDir = new ContentTree('subDir');
             rootTree['subDir'] = subDir;
             subDir.parent = rootTree;
-            const fakePlugin = new FakePlugin('test.file', undefined, rootTree);
-            rootTree['test.file'] = fakePlugin;
+            const fakeMarkdownPage = getFakeMarkdownPage();
+            fakeMarkdownPage.parent = rootTree;
+            rootTree['test.file'] = fakeMarkdownPage;
             const targetPlugin = new FakePlugin('target.file', undefined, subDir, expectedOutput);
             subDir['target.file'] = targetPlugin;
             const testBaseUrl = 'https://example.com';
@@ -3000,7 +3015,7 @@ describe('linkRenderer() tests', () => {
             const testTitle = 'Title of the link';
             const testText = 'Content to display as link text';
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*>.*<\/a>/);
         });
@@ -3014,8 +3029,9 @@ describe('linkRenderer() tests', () => {
             const secondSubDir = new ContentTree('secondSubDir');
             rootTree['secondSubDir'] = secondSubDir;
             secondSubDir.parent = rootTree;
-            const fakePlugin = new FakePlugin('test.file', undefined, firstSubDir);
-            firstSubDir['test.file'] = fakePlugin;
+            const fakeMarkdownPage = getFakeMarkdownPage();
+            fakeMarkdownPage.parent = firstSubDir;
+            firstSubDir['test.file'] = fakeMarkdownPage;
             const targetPlugin = new FakePlugin('target.file', undefined, secondSubDir, expectedOutput);
             secondSubDir['target.file'] = targetPlugin;
             const testBaseUrl = 'https://example.com';
@@ -3023,69 +3039,69 @@ describe('linkRenderer() tests', () => {
             const testTitle = 'Title of the link';
             const testText = 'Content to display as link text';
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*>.*<\/a>/);
         });
     });
 
     test('Returns link containing fourth parameter in correct place if fourth parameter is provided', () => {
-        const fakePlugin = new FakePlugin('test.file');
+        const fakeMarkdownPage = getFakeMarkdownPage();
         const testBaseUrl = 'https://example.com';
         const testHref = 'http://another.example.com/file.link';
         const testTitle = 'Title of the test link';
         const testText = 'Content to display as text in the page';
 
-        const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+        const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
         expect(testOutput).toMatch(/<a [^>]*title="Title of the test link">.*<\/a>/);
     });
 
     test('Returns link not containing a title attribute if fourth parameter is empty string', () => {
-        const fakePlugin = new FakePlugin('test.file');
+        const fakeMarkdownPage = getFakeMarkdownPage();
         const testBaseUrl = 'https://example.com';
         const testHref = 'http://another.example.com/file.link';
         const testTitle = '';
         const testText = 'Content to display as text in the page';
 
-        const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+        const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
         expect(testOutput).toMatch(/<a [^>]*>.*<\/a>/);
         expect(testOutput).not.toMatch(/title=/);
     });
 
     test('Returns link containing fifth parameter in correct place', () => {
-        const fakePlugin = new FakePlugin('test.file');
+        const fakeMarkdownPage = getFakeMarkdownPage();
         const testBaseUrl = 'https://example.com';
         const testHref = 'http://another.example.com/file.link';
         const testTitle = 'Title of the test link';
         const testText = 'Content to display as text in the page';
 
-        const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+        const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
         expect(testOutput).toMatch(/<a [^>]*>Content to display as text in the page<\/a>/);
     });
 
     test('Returns link pointing to third parameter, if that is an absolute URI', () => {
-        const fakePlugin = new FakePlugin('test.file');
+        const fakeMarkdownPage = getFakeMarkdownPage();
         const testBaseUrl = 'https://example.com';
         const testHref = 'http://another.example.com/file.link';
         const testTitle = 'Title of the test link';
         const testText = 'Content to display as text in the page';
 
-        const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+        const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
         expect(testOutput).toMatch(/<a [^>]*href="http:\/\/another.example.com\/file.link"[^>]*>.*<\/a>/);
     });
 
     test('Returns link pointing to third parameter, if that starts with #', () => {
-        const fakePlugin = new FakePlugin('test.file');
+        const fakeMarkdownPage = getFakeMarkdownPage();
         const testBaseUrl = 'https://example.com';
         const testHref = '#somewhere';
         const testTitle = 'Title of the test link';
         const testText = 'Content to display as text in the page';
 
-        const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+        const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
         expect(testOutput).toMatch(/<a [^>]*href="#somewhere"[^>]*>.*<\/a>/);
     });
@@ -3094,8 +3110,9 @@ describe('linkRenderer() tests', () => {
         test('...if the third parameter is the filename of an item in the same node of the tree as the first parmeter', () => {
             const expectedOutput = '/finaltarget';
             const rootTree = new ContentTree('testDir');
-            const fakePlugin = new FakePlugin('test.file', undefined, rootTree);
-            rootTree['test.file'] = fakePlugin;
+            const fakeMarkdownPage = getFakeMarkdownPage();
+            fakeMarkdownPage.parent = rootTree;
+            rootTree['test.file'] = fakeMarkdownPage;
             const targetPlugin = new FakePlugin('target.file', undefined, rootTree, expectedOutput);
             rootTree['target.file'] = targetPlugin;
             const testBaseUrl = 'https://example.com';
@@ -3103,7 +3120,7 @@ describe('linkRenderer() tests', () => {
             const testTitle = 'Title of the test link';
             const testText = 'Content to display as text in the page';
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*href="\/finaltarget" [^>]*>.*<\/a>/);
         });
@@ -3114,8 +3131,9 @@ describe('linkRenderer() tests', () => {
             const subDir = new ContentTree('subDir');
             rootTree['subDir'] = subDir;
             subDir.parent = rootTree;
-            const fakePlugin = new FakePlugin('test.file', undefined, subDir);
-            subDir['test.file'] = fakePlugin;
+            const fakeMarkdownPage = getFakeMarkdownPage();
+            fakeMarkdownPage.parent = subDir;
+            subDir['test.file'] = fakeMarkdownPage;
             const targetPlugin = new FakePlugin('target.file', undefined, rootTree, expectedOutput);
             rootTree['target.file'] = targetPlugin;
             const testBaseUrl = 'https://example.com';
@@ -3123,7 +3141,7 @@ describe('linkRenderer() tests', () => {
             const testTitle = 'Title of the link';
             const testText = 'Content to display as link text';
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*href="\/finaltarget" [^>]*>.*<\/a>/);
         });
@@ -3134,8 +3152,9 @@ describe('linkRenderer() tests', () => {
             const subDir = new ContentTree('subDir');
             rootTree['subDir'] = subDir;
             subDir.parent = rootTree;
-            const fakePlugin = new FakePlugin('test.file', undefined, rootTree);
-            rootTree['test.file'] = fakePlugin;
+            const fakeMarkdownPage = getFakeMarkdownPage();
+            fakeMarkdownPage.parent = rootTree;
+            rootTree['test.file'] = fakeMarkdownPage;
             const targetPlugin = new FakePlugin('target.file', undefined, subDir, expectedOutput);
             subDir['target.file'] = targetPlugin;
             const testBaseUrl = 'https://example.com';
@@ -3143,7 +3162,7 @@ describe('linkRenderer() tests', () => {
             const testTitle = 'Title of the link';
             const testText = 'Content to display as link text';
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*href="\/finaltarget" [^>]*>.*<\/a>/);
         });
@@ -3157,8 +3176,9 @@ describe('linkRenderer() tests', () => {
             const secondSubDir = new ContentTree('secondSubDir');
             rootTree['secondSubDir'] = secondSubDir;
             secondSubDir.parent = rootTree;
-            const fakePlugin = new FakePlugin('test.file', undefined, firstSubDir);
-            firstSubDir['test.file'] = fakePlugin;
+            const fakeMarkdownPage = getFakeMarkdownPage();
+            fakeMarkdownPage.parent = firstSubDir;
+            firstSubDir['test.file'] = fakeMarkdownPage;
             const targetPlugin = new FakePlugin('target.file', undefined, secondSubDir, expectedOutput);
             secondSubDir['target.file'] = targetPlugin;
             const testBaseUrl = 'https://example.com';
@@ -3166,7 +3186,7 @@ describe('linkRenderer() tests', () => {
             const testTitle = 'Title of the link';
             const testText = 'Content to display as link text';
 
-            const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+            const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
             expect(testOutput).toMatch(/<a [^>]*href="\/finaltarget" [^>]*>.*<\/a>/);
         });
@@ -3174,14 +3194,15 @@ describe('linkRenderer() tests', () => {
 
     test('Returns link pointing to a combination of the third and second parameters if the third parameter is not the filename of an item in the content tree.', () => {
         const rootTree = new ContentTree('testDir');
-        const fakePlugin = new FakePlugin('test.file', undefined, rootTree);
-        rootTree['test.file'] = fakePlugin;
+        const fakeMarkdownPage = getFakeMarkdownPage();
+        fakeMarkdownPage.parent = rootTree;
+        rootTree['test.file'] = fakeMarkdownPage;
         const testBaseUrl = 'https://example.com';
         const testHref = 'target.file';
         const testTitle = 'Title of the test image';
         const testText = 'Content to display as alt text';
 
-        const testOutput = linkRenderer(fakePlugin, testBaseUrl, testHref, testTitle, testText);
+        const testOutput = linkRenderer(fakeMarkdownPage, testBaseUrl, testHref, testTitle, testText);
 
         expect(testOutput).toMatch(/<a [^>]*href="https:\/\/example.com\/target.file"[^>]*>.*<\/a>/);
     });

@@ -92,7 +92,8 @@ const highlighter = (code: string, lang: string): string => {
 };
 
 // The link renderer function is essentially copied from the Marked.js source code, but with the link rewritten before rendering.
-export const linkRenderer = (content: ContentPlugin, baseUrl: string, href: string, title: string, text: string): string => {
+export const linkRenderer = (content: MarkdownPage, baseUrl: string, href: string, title: string, text: string): string => {
+    const innerText = content.parser.parseInline(text);
     href = resolveLink(content, href, baseUrl);
     if (href === null) {
         return text;
@@ -101,7 +102,7 @@ export const linkRenderer = (content: ContentPlugin, baseUrl: string, href: stri
     if (title) {
         out += ` title="${title}"`;
     }
-    out += `>${text}</a>`;
+    out += `>${innerText}</a>`;
     return out;
 };
 
@@ -120,7 +121,7 @@ export const imageRenderer = (content: ContentPlugin, baseUrl: string, href: str
 };
 
 // Set up a Marked instance with our own configuration and extensions, and render the page.
-const parseMarkdown = (content: ContentPlugin, markdown: string, baseUrl: string, options: MarkedExtension) => {
+const parseMarkdown = (content: MarkdownPage, markdown: string, baseUrl: string, options: MarkedExtension) => {
     options.renderer = {
         link: (token: Tokens.Link): string => linkRenderer(content, baseUrl, token.href, token.title, token.text),
         image: (token: Tokens.Image): string => imageRenderer(content, baseUrl, token.href, token.title, token.text),
@@ -134,7 +135,7 @@ const parseMarkdown = (content: ContentPlugin, markdown: string, baseUrl: string
 
     const headingIdOptions = { prefix: 'iceforge-' };
 
-    const marked = new Marked(
+    content.parser = new Marked(
         options, 
         highlightRoutine, 
         markedMangle(), 
@@ -142,7 +143,7 @@ const parseMarkdown = (content: ContentPlugin, markdown: string, baseUrl: string
         gfmHeadingId(headingIdOptions)
     );
 
-    const result = marked.parse(markdown);
+    const result = content.parser.parse(markdown);
     if (typeof result === 'string') {
         return result;
     }
@@ -224,6 +225,8 @@ export class MarkdownPage extends Page {
     markdown: string;
 
     htmlCache: Record<string, string>;
+
+    parser: Marked;
 
     constructor(filepath: FilePath, metadata: Indexable, markdown: string) {
         super(filepath, metadata);

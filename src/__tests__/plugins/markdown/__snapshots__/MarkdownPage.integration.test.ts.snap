@@ -1,0 +1,6 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MarkdownPage integration tests > getHtml() tests > Input containing image links is rendered correctly 1`] = `
+"<p><a href="/testBase/linkTarget"><img src="/testBase/img-filename.jpg" alt="The alt text" title="image title"/></a></p>
+"
+`;
